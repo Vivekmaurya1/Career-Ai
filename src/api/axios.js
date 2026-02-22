@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "https://career-planner-agent-1.onrender.com",
+  baseURL: "https://career-planner-agent-2.onrender.com",
 });
 
 instance.interceptors.request.use((config) => {
