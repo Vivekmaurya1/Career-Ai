@@ -1,3 +1,4 @@
+// src/context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "../api/axios";
 
@@ -7,19 +8,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /* ── Attach token to every request automatically ── */
-  useEffect(() => {
-    const interceptor = axios.interceptors.request.use((config) => {
-      const token = localStorage.getItem("token");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
-
-    // Cleanup interceptor on unmount
-    return () => axios.interceptors.request.eject(interceptor);
-  }, []);
+  // ── FIXED: Removed the duplicate request interceptor that was here.
+  // The axios instance in api/axios.js already attaches the token to every request.
+  // Adding a second interceptor here caused the header to be set twice and
+  // created a new interceptor registration on every render cycle.
 
   /* ── Restore user on page refresh ── */
   useEffect(() => {
@@ -34,7 +26,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const response = await axios.get("/api/auth/me");
         setUser(response.data);
-      } catch (error) {
+      } catch {
         // Token expired or invalid — clear it
         localStorage.removeItem("token");
         setUser(null);
@@ -46,15 +38,10 @@ export const AuthProvider = ({ children }) => {
     restoreUser();
   }, []);
 
-  /* ── Login ── */
+  /* ── Register ── */
   const register = async (name, email, password) => {
     try {
-      await axios.post("/api/auth/register", {
-        name,
-        email,
-        password,
-      });
-
+      await axios.post("/api/auth/register", { name, email, password });
       return { success: true };
     } catch (error) {
       return {
@@ -64,13 +51,10 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  /* ── Login ── */
   const login = async (email, password) => {
     try {
-      const response = await axios.post("/api/auth/login", {
-        email,
-        password,
-      });
-
+      const response = await axios.post("/api/auth/login", { email, password });
       localStorage.setItem("token", response.data.token);
 
       const me = await axios.get("/api/auth/me");

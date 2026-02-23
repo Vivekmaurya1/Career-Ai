@@ -1,622 +1,337 @@
+// src/components/Navbar.jsx
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { motion, AnimatePresence } from "framer-motion";
+
+const NAV_HEIGHT = 56;
 
 export default function Navbar() {
-    const [scrolled, setScrolled] = useState(false);
-    const [active, setActive] = useState("");
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [hovered, setHovered] = useState(null);
-    const [mounted, setMounted] = useState(false);
-    const [profileOpen, setProfileOpen] = useState(false);
-    const indicatorRef = useRef(null);
-    const navLinksRef = useRef({});
-    const profileRef = useRef(null);
-    const navigate = useNavigate();
-    const location = useLocation();
-    const { user, logout } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [time, setTime] = useState("");
+  const profileRef = useRef(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { user, logout } = useAuth();
+  const isLanding = location.pathname === "/";
 
-    const isLanding = location.pathname === "/";
+  useEffect(() => {
+    setTimeout(() => setMounted(true), 80);
+    document.documentElement.style.setProperty("--navbar-height", `${NAV_HEIGHT}px`);
+    const onScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", onScroll, { passive: true });
 
-    // Links adapt based on current route
-    const landingLinks = [
-        { label: "Features",     key: "features", action: () => document.querySelector("#features")?.scrollIntoView({ behavior: "smooth" }) },
-        { label: "How It Works", key: "how",      action: () => document.querySelector("#how")?.scrollIntoView({ behavior: "smooth" }) },
-        { label: "Get Started",  key: "cta",      action: () => document.querySelector("#cta")?.scrollIntoView({ behavior: "smooth" }) },
-    ];
-
-    const appLinks = [
-        { label: "Dashboard", key: "dashboard", action: () => navigate("/dashboard") },
-        { label: "Generate",  key: "generate",  action: () => navigate("/generate") },
-    ];
-
-    const links = isLanding ? landingLinks : (user ? appLinks : landingLinks);
-
-    // Sync active key to route when not on landing
-    useEffect(() => {
-        if (!isLanding) {
-            const path = location.pathname.replace("/", "");
-            setActive(path);
-        } else {
-            setActive("");
-        }
-    }, [location.pathname, isLanding]);
-
-    useEffect(() => {
-        setTimeout(() => setMounted(true), 50);
-        const onScroll = () => setScrolled(window.scrollY > 20);
-        window.addEventListener("scroll", onScroll, { passive: true });
-        return () => window.removeEventListener("scroll", onScroll);
-    }, []);
-
-    useEffect(() => {
-        const handleClick = (e) => {
-            if (profileRef.current && !profileRef.current.contains(e.target)) {
-                setProfileOpen(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClick);
-        return () => document.removeEventListener("mousedown", handleClick);
-    }, []);
-
-    useEffect(() => {
-        const key = hovered || active;
-        const el = navLinksRef.current[key];
-        const ind = indicatorRef.current;
-        if (el && ind) {
-            const wrap = el.closest(".nav-links-wrap");
-            if (!wrap) return;
-            const rect = el.getBoundingClientRect();
-            const parentRect = wrap.getBoundingClientRect();
-            ind.style.width = rect.width + "px";
-            ind.style.left = rect.left - parentRect.left + "px";
-            ind.style.opacity = "1";
-        } else if (ind) {
-            ind.style.opacity = "0";
-        }
-    }, [hovered, active]);
-
-    const getInitials = () => {
-        if (!user) return "";
-        if (user.name) return user.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
-        if (user.email) return user.email[0].toUpperCase();
-        return "U";
+    const tick = () => {
+      const now = new Date();
+      setTime(now.toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" }));
     };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => { window.removeEventListener("scroll", onScroll); clearInterval(timer); };
+  }, []);
 
-    const avatarColors = [
-        ["#7c3aed", "#4f46e5"],
-        ["#0ea5e9", "#06b6d4"],
-        ["#f43f5e", "#ec4899"],
-        ["#f97316", "#eab308"],
-        ["#22c55e", "#10b981"],
-    ];
-    const colorIdx = user ? (user.email?.charCodeAt(0) || 0) % avatarColors.length : 0;
-    const [c1, c2] = avatarColors[colorIdx];
+  useEffect(() => {
+    setMenuOpen(false);
+    setProfileOpen(false);
+  }, [location.pathname]);
 
-    const handleLogoClick = () => {
-        if (isLanding) window.scrollTo({ top: 0, behavior: "smooth" });
-        else navigate("/");
-    };
+  useEffect(() => {
+    const h = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false); };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
-    return (
-        <>
-            <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+  const landingLinks = [
+    { label: "FEATURES", action: () => document.querySelector("#features")?.scrollIntoView({ behavior: "smooth" }) },
+    { label: "HOW IT WORKS", action: () => document.querySelector("#how")?.scrollIntoView({ behavior: "smooth" }) },
+    { label: "START", action: () => document.querySelector("#cta")?.scrollIntoView({ behavior: "smooth" }) },
+  ];
+  const appLinks = [
+    { label: "DASHBOARD", action: () => navigate("/dashboard"), path: "/dashboard" },
+    { label: "GENERATE", action: () => navigate("/generate"), path: "/generate" },
+  ];
+  const links = isLanding ? landingLinks : (user ? appLinks : landingLinks);
 
-        .nav-root {
-          position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-          font-family: 'Outfit', sans-serif;
-          transition: padding 0.4s ease;
+  const pathLabel = {
+    "/dashboard": "DASHBOARD",
+    "/generate": "GENERATE",
+    "/login": "LOGIN",
+    "/register": "REGISTER",
+    "/profile": "PROFILE",
+  }[location.pathname] || (location.pathname.startsWith("/roadmap") ? "ROADMAP" : null);
+
+  const initials = user?.name?.split(" ").map(w => w[0]).join("").toUpperCase().slice(0,2)
+    || user?.email?.[0]?.toUpperCase() || "U";
+
+  return (
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
+        :root { --navbar-height: ${NAV_HEIGHT}px; --amber: #f59e0b; --amber-dim: rgba(245,158,11,0.15); }
+
+        .nb {
+          position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+          height: var(--navbar-height);
+          font-family: 'IBM Plex Mono', monospace;
+          transition: background 0.3s, border-color 0.3s;
+          border-bottom: 1px solid rgba(255,255,255,0.06);
         }
-        .nav-root::before {
-          content: '';
-          position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(139,92,246,0.6), rgba(96,165,250,0.4), transparent);
-          opacity: 0; transition: opacity 0.4s;
+        .nb.solid {
+          background: rgba(8,8,8,0.96);
+          backdrop-filter: blur(20px);
+          border-bottom-color: rgba(245,158,11,0.2);
         }
-        .nav-root.scrolled::before { opacity: 1; }
+        .nb-inner {
+          max-width: 1400px; margin: 0 auto; height: 100%;
+          display: flex; align-items: center; padding: 0 24px; gap: 0;
+        }
 
-        /* Always show glass bg on non-landing pages */
-        .nav-inner {
-          max-width: 1200px; margin: 0 auto;
-          display: flex; align-items: center; justify-content: space-between;
-          padding: 14px 32px;
-          background: rgba(6,6,16,0);
-          transition: background 0.4s ease, padding 0.4s ease, box-shadow 0.4s ease;
+        /* Logo */
+        .nb-logo {
+          display: flex; align-items: center; gap: 10px; cursor: pointer;
+          opacity: 0; transform: translateX(-8px);
+          transition: opacity 0.4s, transform 0.4s;
+          flex-shrink: 0; margin-right: 32px;
         }
-        .nav-root.scrolled .nav-inner,
-        .nav-root.app-page .nav-inner {
-          background: rgba(6,6,16,0.88);
-          backdrop-filter: blur(24px) saturate(180%);
-          padding: 10px 32px;
-          box-shadow: 0 1px 0 rgba(255,255,255,0.06), 0 8px 40px rgba(0,0,0,0.4);
-        }
-        .nav-root.app-page::before { opacity: 1; }
-
-        /* ── LOGO ── */
-        .nav-logo {
-          display: flex; align-items: center; gap: 10px;
-          cursor: pointer; user-select: none;
-          opacity: 0; transform: translateY(-8px);
-          transition: opacity 0.5s, transform 0.5s;
-        }
-        .nav-logo.mounted { opacity: 1; transform: translateY(0); }
-        .nav-logo-mark {
-          width: 32px; height: 32px; border-radius: 10px;
-          background: linear-gradient(135deg, #6d28d9, #4f46e5);
+        .nb-logo.on { opacity: 1; transform: translateX(0); }
+        .nb-mark {
+          width: 28px; height: 28px; background: #f59e0b;
+          clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
           display: flex; align-items: center; justify-content: center;
-          position: relative; overflow: hidden;
-          box-shadow: 0 4px 16px rgba(109,40,217,0.4);
-          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s;
+          transition: transform 0.3s;
         }
-        .nav-logo:hover .nav-logo-mark {
-          transform: scale(1.1) rotate(-4deg);
-          box-shadow: 0 6px 24px rgba(109,40,217,0.6);
+        .nb-logo:hover .nb-mark { transform: rotate(30deg); }
+        .nb-wordmark {
+          font-family: 'Bebas Neue', sans-serif; font-size: 20px;
+          letter-spacing: 0.08em; color: #f0f0f0;
         }
-        .nav-logo-mark::after {
-          content: ''; position: absolute; inset: 0;
-          background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+        .nb-wordmark span { color: #f59e0b; }
+
+        /* Breadcrumb */
+        .nb-crumb {
+          display: flex; align-items: center; gap: 8px;
+          font-size: 10px; letter-spacing: 0.12em; color: rgba(255,255,255,0.3);
+          margin-right: 24px;
         }
-        .nav-logo-mark svg { position: relative; z-index: 1; }
-        .nav-logo-text {
-          font-size: 18px; font-weight: 800; letter-spacing: -0.03em;
-          background: linear-gradient(135deg, #f8fafc 30%, #a78bfa);
-          -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-          transition: filter 0.3s;
+        .nb-crumb-slash { opacity: 0.3; }
+        .nb-crumb-page { color: #f59e0b; }
+
+        /* Nav links */
+        .nb-links { display: flex; align-items: center; gap: 2px; flex: 1; }
+        .nb-link {
+          padding: 6px 14px; font-size: 10px; letter-spacing: 0.14em;
+          color: rgba(255,255,255,0.4); background: none; border: none; cursor: pointer;
+          font-family: 'IBM Plex Mono', monospace;
+          transition: color 0.2s, background 0.2s;
+          border-radius: 3px; position: relative; overflow: hidden;
         }
-        .nav-logo:hover .nav-logo-text { filter: brightness(1.2); }
-        .nav-logo-badge {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 8px; letter-spacing: 0.1em;
-          background: rgba(109,40,217,0.2); border: 1px solid rgba(139,92,246,0.3);
-          color: #a78bfa; border-radius: 5px; padding: 2px 5px;
-          align-self: flex-start; margin-top: 2px;
+        .nb-link::after {
+          content: ''; position: absolute; bottom: 0; left: 50%; right: 50%;
+          height: 1px; background: #f59e0b;
+          transition: left 0.25s, right 0.25s;
+        }
+        .nb-link:hover { color: #f0f0f0; background: rgba(245,158,11,0.06); }
+        .nb-link:hover::after, .nb-link.active::after { left: 14px; right: 14px; }
+        .nb-link.active { color: #f59e0b; }
+
+        /* Clock */
+        .nb-clock {
+          font-size: 10px; letter-spacing: 0.1em; color: rgba(255,255,255,0.2);
+          padding: 0 16px; border-left: 1px solid rgba(255,255,255,0.07);
+          border-right: 1px solid rgba(255,255,255,0.07);
+          margin: 0 8px; font-variant-numeric: tabular-nums;
         }
 
-        /* ── BREADCRUMB (non-landing) ── */
-        .nav-breadcrumb {
-          display: flex; align-items: center; gap: 6px;
-          font-size: 13px; color: rgba(255,255,255,0.3);
-          margin-left: 4px;
+        /* Auth */
+        .nb-login {
+          font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.12em;
+          padding: 7px 18px; border: 1px solid rgba(245,158,11,0.4); color: #f59e0b;
+          background: transparent; cursor: pointer; border-radius: 2px;
+          transition: all 0.2s;
         }
-        .nav-breadcrumb-sep { opacity: 0.3; }
-        .nav-breadcrumb-page {
-          color: rgba(255,255,255,0.7); font-weight: 500;
-          text-transform: capitalize;
-        }
+        .nb-login:hover { background: #f59e0b; color: #080808; }
 
-        /* ── NAV LINKS ── */
-        .nav-links-wrap {
-          position: relative;
-          display: flex; align-items: center; gap: 4px;
+        /* Profile */
+        .nb-profile-btn {
+          display: flex; align-items: center; gap: 8px; padding: 4px 10px 4px 4px;
+          background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);
+          border-radius: 3px; cursor: pointer; transition: all 0.2s;
         }
-        .nav-indicator {
-          position: absolute; bottom: -2px; height: 2px; border-radius: 99px;
-          background: linear-gradient(90deg, #8b5cf6, #60a5fa);
-          box-shadow: 0 0 10px rgba(139,92,246,0.5);
-          transition: left 0.3s cubic-bezier(0.34,1.4,0.64,1),
-                      width 0.3s cubic-bezier(0.34,1.4,0.64,1),
-                      opacity 0.2s;
-          pointer-events: none;
+        .nb-profile-btn:hover { background: rgba(245,158,11,0.15); border-color: rgba(245,158,11,0.4); }
+        .nb-avatar {
+          width: 26px; height: 26px; background: #f59e0b; color: #080808;
+          font-size: 10px; font-weight: 700; display: flex; align-items: center;
+          justify-content: center; border-radius: 2px;
         }
-        .nav-link {
-          position: relative;
-          font-size: 14px; font-weight: 500; color: #64748b;
-          text-decoration: none; padding: 8px 14px; border-radius: 10px;
-          background: none; border: none; cursor: pointer; font-family: 'Outfit', sans-serif;
-          transition: color 0.25s, background 0.25s;
-          white-space: nowrap;
-          opacity: 0; transform: translateY(-6px);
-        }
-        .nav-link.mounted {
-          opacity: 1; transform: translateY(0);
-          transition: color 0.25s, background 0.25s, opacity 0.4s, transform 0.4s;
-        }
-        .nav-link:hover { color: #f1f5f9; background: rgba(255,255,255,0.05); }
-        .nav-link.active-link {
-          color: #f1f5f9;
-          background: rgba(139,92,246,0.08);
-        }
-
-        /* ── LOGIN BUTTON ── */
-        .nav-login {
-          position: relative; overflow: hidden;
-          display: flex; align-items: center; gap: 7px;
-          background: transparent;
-          border: 1px solid rgba(255,255,255,0.15);
-          color: #e2e8f0; border-radius: 12px;
-          padding: 9px 20px;
-          font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
-          cursor: pointer; letter-spacing: -0.01em;
-          opacity: 0; transform: translateY(-8px);
-          white-space: nowrap;
-          transition: border-color 0.25s, color 0.25s, box-shadow 0.25s, transform 0.2s;
-        }
-        .nav-login.mounted {
-          opacity: 1; transform: translateY(0);
-          transition: border-color 0.25s, color 0.25s, box-shadow 0.25s,
-                      transform 0.2s cubic-bezier(0.34,1.56,0.64,1),
-                      opacity 0.5s 0.2s, transform 0.5s 0.2s cubic-bezier(0.22,1,0.36,1);
-        }
-        .nav-login::before {
-          content: ''; position: absolute; inset: 0; border-radius: 12px;
-          background: linear-gradient(135deg, rgba(109,40,217,0.15), rgba(79,70,229,0.1));
-          opacity: 0; transition: opacity 0.25s;
-        }
-        .nav-login:hover {
-          border-color: rgba(139,92,246,0.5); color: #f1f5f9;
-          box-shadow: 0 0 20px rgba(109,40,217,0.2), inset 0 1px 0 rgba(255,255,255,0.08);
-          transform: translateY(-1px);
-        }
-        .nav-login:hover::before { opacity: 1; }
-        .nav-login:active { transform: scale(0.97); }
-        .nav-login span { position: relative; z-index: 1; }
-        .nav-login svg { position: relative; z-index: 1; transition: transform 0.25s; }
-        .nav-login:hover svg { transform: translateX(2px); }
-
-        /* ── PROFILE ── */
-        .nav-profile-wrap {
-          position: relative;
-          opacity: 0; transform: translateY(-8px);
-          transition: opacity 0.5s 0.2s, transform 0.5s 0.2s cubic-bezier(0.22,1,0.36,1);
-        }
-        .nav-profile-wrap.mounted { opacity: 1; transform: translateY(0); }
-        .nav-profile-btn {
-          display: flex; align-items: center; gap: 9px;
-          padding: 5px 12px 5px 5px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 99px; cursor: pointer;
-          transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
-        }
-        .nav-profile-btn:hover {
-          background: rgba(255,255,255,0.08);
-          border-color: rgba(139,92,246,0.4);
-          box-shadow: 0 0 16px rgba(109,40,217,0.2);
-          transform: translateY(-1px);
-        }
-        .nav-profile-btn.open {
-          background: rgba(109,40,217,0.12);
-          border-color: rgba(139,92,246,0.45);
-          box-shadow: 0 0 20px rgba(109,40,217,0.25);
-        }
-        .nav-avatar {
-          width: 28px; height: 28px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 11px; font-weight: 700; color: #fff;
-          flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-          position: relative;
-        }
-        .nav-avatar::after {
-          content: ''; position: absolute; inset: 0; border-radius: 50%;
-          background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
-        }
-        .nav-avatar-dot {
-          position: absolute; bottom: 0; right: 0;
-          width: 8px; height: 8px; border-radius: 50%;
-          background: #22c55e; border: 1.5px solid #060912;
-          box-shadow: 0 0 6px rgba(34,197,94,0.6);
-        }
-        .nav-profile-name {
-          font-size: 13px; font-weight: 600; color: #e2e8f0;
-          max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .nav-profile-chevron {
-          color: rgba(255,255,255,0.4);
-          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), color 0.2s;
-        }
-        .nav-profile-btn.open .nav-profile-chevron { transform: rotate(180deg); color: #a78bfa; }
+        .nb-uname { font-size: 10px; letter-spacing: 0.08em; color: #f59e0b; }
+        .nb-chevron { color: rgba(245,158,11,0.5); transition: transform 0.2s; }
+        .nb-profile-btn.open .nb-chevron { transform: rotate(180deg); }
 
         /* Dropdown */
-        .nav-profile-dropdown {
-          position: absolute; top: calc(100% + 10px); right: 0;
-          width: 220px;
-          background: rgba(8,8,20,0.97);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 18px; padding: 6px;
-          backdrop-filter: blur(30px);
-          box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 30px rgba(109,40,217,0.08);
-          transform-origin: top right;
-          animation: dropIn 0.25s cubic-bezier(0.22,1,0.36,1) both;
-          z-index: 200;
+        .nb-drop {
+          position: absolute; top: calc(100% + 8px); right: 0; width: 200px;
+          background: #0e0e0e; border: 1px solid rgba(245,158,11,0.25);
+          border-radius: 4px; overflow: hidden;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(245,158,11,0.05);
         }
-        .nav-profile-dropdown::before {
-          content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(139,92,246,0.4), transparent);
+        .nb-drop-header {
+          padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.06);
+          background: rgba(245,158,11,0.05);
         }
-        @keyframes dropIn {
-          from { opacity: 0; transform: scale(0.92) translateY(-8px); }
-          to   { opacity: 1; transform: scale(1) translateY(0); }
+        .nb-drop-name { font-size: 11px; color: #f0f0f0; margin-bottom: 2px; }
+        .nb-drop-email { font-size: 9px; color: rgba(255,255,255,0.3); letter-spacing: 0.05em; }
+        .nb-drop-item {
+          display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+          font-size: 10px; letter-spacing: 0.1em; color: rgba(255,255,255,0.5);
+          cursor: pointer; border: none; background: none; width: 100%; text-align: left;
+          font-family: 'IBM Plex Mono', monospace;
+          transition: background 0.15s, color 0.15s;
         }
-        .nav-dd-header {
-          display: flex; align-items: center; gap: 10px;
-          padding: 10px 12px 12px;
-          border-bottom: 1px solid rgba(255,255,255,0.05);
-          margin-bottom: 4px;
-        }
-        .nav-dd-avatar {
-          width: 36px; height: 36px; border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 13px; font-weight: 700; color: #fff;
-          flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3); position: relative;
-        }
-        .nav-dd-avatar::after {
-          content: ''; position: absolute; inset: 0; border-radius: 50%;
-          background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
-        }
-        .nav-dd-info { overflow: hidden; }
-        .nav-dd-name { font-size: 13px; font-weight: 600; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .nav-dd-email { font-size: 11px; color: rgba(255,255,255,0.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
-        .nav-dd-item {
-          display: flex; align-items: center; gap: 10px;
-          padding: 10px 12px; border-radius: 12px;
-          color: rgba(255,255,255,0.55);
-          font-size: 13.5px; font-weight: 500;
-          cursor: pointer; border: none; background: none; width: 100%;
-          text-align: left; font-family: 'Outfit', sans-serif;
-          transition: background 0.18s, color 0.18s;
-        }
-        .nav-dd-item:hover { background: rgba(255,255,255,0.06); color: #f1f5f9; }
-        .nav-dd-item svg { flex-shrink: 0; opacity: 0.6; transition: opacity 0.18s; }
-        .nav-dd-item:hover svg { opacity: 1; }
-        .nav-dd-item.active-dd { background: rgba(139,92,246,0.1); color: #c4b5fd; }
-        .nav-dd-item.active-dd svg { opacity: 1; color: #a78bfa; }
-        .nav-dd-item.danger { color: rgba(248,113,113,0.7); }
-        .nav-dd-item.danger:hover { background: rgba(244,63,94,0.1); color: #fca5a5; }
-        .nav-dd-sep { height: 1px; background: rgba(255,255,255,0.05); margin: 4px 6px; }
+        .nb-drop-item:hover { background: rgba(245,158,11,0.08); color: #f59e0b; }
+        .nb-drop-item.danger { color: rgba(239,68,68,0.6); }
+        .nb-drop-item.danger:hover { background: rgba(239,68,68,0.08); color: #ef4444; }
+        .nb-drop-sep { height: 1px; background: rgba(255,255,255,0.06); }
 
-        /* ── HAMBURGER ── */
-        .nav-hamburger {
-          display: none;
-          flex-direction: column; justify-content: center; align-items: center;
-          width: 36px; height: 36px; gap: 5px;
-          background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 10px; cursor: pointer; transition: background 0.2s;
+        /* Hamburger */
+        .nb-ham {
+          display: none; flex-direction: column; gap: 4px; cursor: pointer;
+          padding: 6px; background: none; border: none;
         }
-        .nav-hamburger:hover { background: rgba(255,255,255,0.1); }
-        .nav-hamburger span {
-          width: 16px; height: 1.5px; border-radius: 99px; background: #94a3b8;
-          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1), opacity 0.2s, width 0.3s;
-          transform-origin: center;
+        .nb-ham span {
+          display: block; width: 18px; height: 1px; background: #f59e0b;
+          transition: transform 0.3s, opacity 0.3s;
         }
-        .nav-hamburger.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); width: 18px; }
-        .nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-        .nav-hamburger.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); width: 18px; }
+        .nb-ham.open span:nth-child(1) { transform: translateY(5px) rotate(45deg); }
+        .nb-ham.open span:nth-child(2) { opacity: 0; }
+        .nb-ham.open span:nth-child(3) { transform: translateY(-5px) rotate(-45deg); }
 
-        /* ── MOBILE MENU ── */
-        .nav-mobile {
-          position: fixed; top: 60px; left: 12px; right: 12px;
-          background: rgba(8,8,20,0.97);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 20px; padding: 16px;
-          backdrop-filter: blur(30px);
-          box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(109,40,217,0.08);
-          transform-origin: top center;
-          animation: mobileIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
-          overflow: hidden; z-index: 99;
+        /* Mobile */
+        .nb-mobile {
+          position: fixed; top: var(--navbar-height); left: 0; right: 0;
+          background: rgba(8,8,8,0.98); backdrop-filter: blur(20px);
+          border-bottom: 1px solid rgba(245,158,11,0.2);
+          padding: 16px 24px 24px; z-index: 400;
         }
-        .nav-mobile::before {
-          content: ''; position: absolute; top: 0; left: 20%; right: 20%; height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(139,92,246,0.5), transparent);
-        }
-        .nav-mobile-link {
+        .nb-mobile-link {
           display: flex; align-items: center; justify-content: space-between;
-          padding: 13px 16px; border-radius: 12px;
-          color: #64748b; font-size: 15px; font-weight: 500;
-          text-decoration: none; background: none; border: none; width: 100%;
-          font-family: 'Outfit', sans-serif; cursor: pointer;
-          transition: background 0.2s, color 0.2s;
+          padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+          font-size: 11px; letter-spacing: 0.12em; color: rgba(255,255,255,0.5);
+          cursor: pointer; background: none; border-top: none; width: 100%;
+          font-family: 'IBM Plex Mono', monospace; text-align: left;
+          transition: color 0.2s;
         }
-        .nav-mobile-link:hover,
-        .nav-mobile-link.active { background: rgba(255,255,255,0.05); color: #f1f5f9; }
-        .nav-mobile-link.active { background: rgba(139,92,246,0.08); color: #c4b5fd; }
-        .nav-mobile-divider { height: 1px; background: rgba(255,255,255,0.05); margin: 8px 0; }
-        .nav-mobile-user {
-          display: flex; align-items: center; gap: 10px;
-          padding: 12px 14px; margin-bottom: 4px;
-          background: rgba(109,40,217,0.08); border: 1px solid rgba(139,92,246,0.15);
-          border-radius: 14px;
-        }
-        .nav-mobile-user-info { flex: 1; overflow: hidden; }
-        .nav-mobile-user-name { font-size: 14px; font-weight: 600; color: #f1f5f9; }
-        .nav-mobile-user-email { font-size: 11.5px; color: rgba(255,255,255,0.3); margin-top: 1px; }
-        .nav-mobile-login {
-          width: 100%; padding: 14px;
-          background: linear-gradient(135deg, rgba(109,40,217,0.2), rgba(79,70,229,0.15));
-          border: 1px solid rgba(139,92,246,0.25);
-          border-radius: 14px; color: #c4b5fd;
-          font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600;
-          cursor: pointer; margin-top: 4px; transition: background 0.2s, border-color 0.2s;
-        }
-        .nav-mobile-login:hover {
-          background: linear-gradient(135deg, rgba(109,40,217,0.35), rgba(79,70,229,0.25));
-          border-color: rgba(139,92,246,0.4);
-        }
-        .nav-mobile-logout {
-          width: 100%; padding: 12px;
-          background: rgba(244,63,94,0.08); border: 1px solid rgba(244,63,94,0.2);
-          border-radius: 14px; color: #fca5a5;
-          font-family: 'Outfit', sans-serif; font-size: 14px; font-weight: 600;
-          cursor: pointer; margin-top: 4px; transition: background 0.2s, border-color 0.2s;
-        }
-        .nav-mobile-logout:hover { background: rgba(244,63,94,0.15); border-color: rgba(244,63,94,0.35); }
-
-        @keyframes mobileIn {
-          from { opacity: 0; transform: scaleY(0.9) translateY(-8px); }
-          to { opacity: 1; transform: scaleY(1) translateY(0); }
-        }
+        .nb-mobile-link:hover { color: #f59e0b; }
 
         @media (max-width: 768px) {
-          .nav-links-wrap, .nav-login, .nav-profile-wrap { display: none !important; }
-          .nav-hamburger { display: flex; }
-          .nav-inner { padding: 14px 20px; }
+          .nb-links, .nb-clock, .nb-login, .nb-profile { display: none !important; }
+          .nb-ham { display: flex !important; }
         }
-        @media (min-width: 769px) { .nav-mobile { display: none; } }
+        @media (min-width: 769px) { .nb-mobile { display: none !important; } }
       `}</style>
 
-            <nav className={`nav-root${scrolled ? " scrolled" : ""}${!isLanding ? " app-page" : ""}`}>
-                <div className="nav-inner">
+      <nav className={`nb${scrolled || !isLanding ? " solid" : ""}`}>
+        <div className="nb-inner">
+          {/* Logo */}
+          <div className={`nb-logo${mounted ? " on" : ""}`} onClick={() => isLanding ? window.scrollTo({top:0,behavior:"smooth"}) : navigate("/")}>
+            <div className="nb-mark">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                <path d="M6 1L11 4V8L6 11L1 8V4L6 1Z" fill="#080808" strokeWidth="0"/>
+              </svg>
+            </div>
+            <div className="nb-wordmark">CAREER<span>AI</span></div>
+          </div>
 
-                    {/* ── LOGO + BREADCRUMB ── */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div className={`nav-logo${mounted ? " mounted" : ""}`} onClick={handleLogoClick}>
-                            <div className="nav-logo-mark">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M8 2L14 5.5V10.5L8 14L2 10.5V5.5L8 2Z" fill="white" fillOpacity="0.9" />
-                                    <path d="M8 5L11 6.75V10.25L8 12L5 10.25V6.75L8 5Z" fill="white" fillOpacity="0.25" />
-                                </svg>
-                            </div>
-                            <span className="nav-logo-text">CareerAI</span>
-                            <span className="nav-logo-badge">BETA</span>
-                        </div>
+          {/* Breadcrumb */}
+          <AnimatePresence>
+            {!isLanding && pathLabel && (
+              <motion.div className="nb-crumb"
+                initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-6 }}
+                transition={{ duration:0.25 }}
+              >
+                <span className="nb-crumb-slash">/</span>
+                <span className="nb-crumb-page">{pathLabel}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                        {/* Breadcrumb on inner pages */}
-                        {!isLanding && (
-                            <div className="nav-breadcrumb">
-                                <span className="nav-breadcrumb-sep">/</span>
-                                <span className="nav-breadcrumb-page">
-                                    {location.pathname.replace("/", "") || "home"}
-                                </span>
-                            </div>
-                        )}
+          {/* Links */}
+          <div className="nb-links">
+            {links.map((l) => (
+              <button key={l.label} className={`nb-link${l.path && location.pathname === l.path ? " active" : ""}`}
+                onClick={l.action}>{l.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Clock */}
+          <div className="nb-clock">{time}</div>
+
+          {/* Auth */}
+          {!user ? (
+            <button className="nb-login" onClick={() => navigate("/login")}>LOGIN →</button>
+          ) : (
+            <div ref={profileRef} style={{ position:"relative" }} className="nb-profile">
+              <div className={`nb-profile-btn${profileOpen ? " open" : ""}`} onClick={() => setProfileOpen(o => !o)}>
+                <div className="nb-avatar">{initials}</div>
+                <span className="nb-uname">{user.name?.split(" ")[0]?.toUpperCase() || user.email?.split("@")[0]?.toUpperCase()}</span>
+                <svg className="nb-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none">
+                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <AnimatePresence>
+                {profileOpen && (
+                  <motion.div className="nb-drop"
+                    initial={{ opacity:0, y:-8, scaleY:0.92 }} animate={{ opacity:1, y:0, scaleY:1 }}
+                    exit={{ opacity:0, y:-8, scaleY:0.92 }} transition={{ duration:0.18 }}
+                  >
+                    <div className="nb-drop-header">
+                      <div className="nb-drop-name">{user.name || "User"}</div>
+                      <div className="nb-drop-email">{user.email}</div>
                     </div>
-
-                    {/* ── DESKTOP LINKS ── */}
-                    <div className="nav-links-wrap" onMouseLeave={() => setHovered(null)}>
-                        <div ref={indicatorRef} className="nav-indicator" />
-                        {links.map((link, i) => (
-                            <button
-                                key={link.key}
-                                ref={el => navLinksRef.current[link.key] = el}
-                                className={`nav-link${mounted ? " mounted" : ""}${active === link.key ? " active-link" : ""}`}
-                                style={{ transitionDelay: mounted ? `${0.05 + i * 0.06}s` : "0s" }}
-                                onMouseEnter={() => setHovered(link.key)}
-                                onClick={() => { link.action(); setActive(link.key); }}
-                            >
-                                {link.label}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* ── AUTH AREA ── */}
-                    {!user ? (
-                        <button onClick={() => navigate("/login")} className={`nav-login${mounted ? " mounted" : ""}`}>
-                            <span>Login</span>
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                <path d="M5 7h6M8 4.5L10.5 7 8 9.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                <path d="M3 2.5H2a.5.5 0 0 0-.5.5v8a.5.5 0 0 0 .5.5h1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                            </svg>
-                        </button>
-                    ) : (
-                        <div ref={profileRef} className={`nav-profile-wrap${mounted ? " mounted" : ""}`}>
-                            <button className={`nav-profile-btn${profileOpen ? " open" : ""}`} onClick={() => setProfileOpen(o => !o)}>
-                                <div className="nav-avatar" style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}>
-                                    {getInitials()}
-                                    <span className="nav-avatar-dot" />
-                                </div>
-                                <span className="nav-profile-name">
-                                    {user.name ? user.name.split(" ")[0] : user.email?.split("@")[0]}
-                                </span>
-                                <svg className="nav-profile-chevron" width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                    <path d="M3.5 5.5L7 9l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
-
-                            {profileOpen && (
-                                <div className="nav-profile-dropdown">
-                                    <div className="nav-dd-header">
-                                        <div className="nav-dd-avatar" style={{ background: `linear-gradient(135deg, ${c1}, ${c2})` }}>
-                                            {getInitials()}
-                                        </div>
-                                        <div className="nav-dd-info">
-                                            <div className="nav-dd-name">{user.name || "User"}</div>
-                                            <div className="nav-dd-email">{user.email}</div>
-                                        </div>
-                                    </div>
-
-                                    {[
-                                        { path: "/dashboard", label: "Dashboard", icon: <><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.75"/></> },
-                                        { path: "/generate",  label: "Generate",  icon: <path d="M12 3v3M12 18v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M3 12h3M18 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/> },
-                                        { path: "/profile",   label: "Profile",   icon: <><circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.75"/><path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/></> },
-                                        { path: "/settings",  label: "Settings",  icon: <><circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.75"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"/></> },
-                                    ].map(({ path, label, icon }) => (
-                                        <button
-                                            key={path}
-                                            className={`nav-dd-item${location.pathname === path ? " active-dd" : ""}`}
-                                            onClick={() => { navigate(path); setProfileOpen(false); }}
-                                        >
-                                            <svg width="15" height="15" fill="none" viewBox="0 0 24 24">{icon}</svg>
-                                            {label}
-                                            {location.pathname === path && (
-                                                <svg width="6" height="6" style={{ marginLeft: "auto" }} viewBox="0 0 6 6">
-                                                    <circle cx="3" cy="3" r="3" fill="#a78bfa"/>
-                                                </svg>
-                                            )}
-                                        </button>
-                                    ))}
-
-                                    <div className="nav-dd-sep" />
-                                    <button className="nav-dd-item danger" onClick={() => { logout(); navigate("/"); setProfileOpen(false); }}>
-                                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
-                                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/>
-                                        </svg>
-                                        Sign out
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* ── HAMBURGER ── */}
-                    <div className={`nav-hamburger${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen(o => !o)}>
-                        <span /><span /><span />
-                    </div>
-                </div>
-
-                {/* ── MOBILE MENU ── */}
-                {menuOpen && (
-                    <div className="nav-mobile">
-                        {user && (
-                            <>
-                                <div className="nav-mobile-user">
-                                    <div className="nav-avatar" style={{ background: `linear-gradient(135deg, ${c1}, ${c2})`, width: 36, height: 36, fontSize: 13 }}>
-                                        {getInitials()}
-                                        <span className="nav-avatar-dot" />
-                                    </div>
-                                    <div className="nav-mobile-user-info">
-                                        <div className="nav-mobile-user-name">{user.name || "User"}</div>
-                                        <div className="nav-mobile-user-email">{user.email}</div>
-                                    </div>
-                                </div>
-                                <div className="nav-mobile-divider" />
-                            </>
-                        )}
-
-                        {links.map(link => (
-                            <button
-                                key={link.key}
-                                className={`nav-mobile-link${active === link.key ? " active" : ""}`}
-                                onClick={() => { link.action(); setMenuOpen(false); setActive(link.key); }}
-                            >
-                                {link.label}
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                                    <path d="M5 3l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
-                            </button>
-                        ))}
-
-                        <div className="nav-mobile-divider" />
-
-                        {!user ? (
-                            <button className="nav-mobile-login" onClick={() => { navigate("/login"); setMenuOpen(false); }}>Login →</button>
-                        ) : (
-                            <button className="nav-mobile-logout" onClick={() => { logout(); navigate("/"); setMenuOpen(false); }}>
-                                Sign out
-                            </button>
-                        )}
-                    </div>
+                    {[{p:"/dashboard",l:"DASHBOARD"},{p:"/generate",l:"GENERATE"},{p:"/profile",l:"PROFILE"},{p:"/settings",l:"SETTINGS"}].map(({p,l}) => (
+                      <button key={p} className="nb-drop-item" onClick={() => { navigate(p); setProfileOpen(false); }}>
+                        <span style={{ color: location.pathname === p ? "#f59e0b" : undefined }}>▸</span> {l}
+                      </button>
+                    ))}
+                    <div className="nb-drop-sep" />
+                    <button className="nb-drop-item danger" onClick={() => { logout(); navigate("/"); setProfileOpen(false); }}>
+                      ⏻ SIGN OUT
+                    </button>
+                  </motion.div>
                 )}
-            </nav>
-        </>
-    );
+              </AnimatePresence>
+            </div>
+          )}
+
+          {/* Ham */}
+          <div className={`nb-ham${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen(o=>!o)}>
+            <span/><span/><span/>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div className="nb-mobile"
+              initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }}
+              transition={{ duration:0.2 }}
+            >
+              {links.map(l => (
+                <button key={l.label} className="nb-mobile-link" onClick={() => { l.action(); setMenuOpen(false); }}>
+                  {l.label} <span style={{ color:"#f59e0b" }}>→</span>
+                </button>
+              ))}
+              {!user
+                ? <button className="nb-mobile-link" style={{ color:"#f59e0b" }} onClick={() => { navigate("/login"); setMenuOpen(false); }}>LOGIN →</button>
+                : <button className="nb-mobile-link" style={{ color:"#ef4444" }} onClick={() => { logout(); navigate("/"); setMenuOpen(false); }}>SIGN OUT</button>
+              }
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </nav>
+    </>
+  );
 }

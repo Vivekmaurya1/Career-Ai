@@ -1,24 +1,25 @@
+// src/api/axios.js
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: "https://career-planner-agent-2.onrender.com",
+  baseURL: "http://localhost:8080",
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-/* 🔐 Attach token automatically */
+// ── FIXED: Only ONE auth interceptor here. Removed the duplicate from AuthContext.
+// AuthContext was adding a second interceptor in a useEffect, causing every request
+// to have the token attached twice and triggering unnecessary re-attachment on re-renders.
 instance.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
   return config;
 });
 
-/* 🚨 Auto logout if token expired */
+// Auto logout on 401
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
