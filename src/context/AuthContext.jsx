@@ -1,101 +1,49 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import axios from "../api/axios";
+import axios from "axios";
 
-const AuthContext = createContext();
+const instance = axios.create({
+  baseURL: "https://career-planner-agent-2.onrender.com",
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+/* 🔐 Attach token automatically + check expiry before request */
+instance.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
 
-  /* ── Attach token to every request automatically ── */
-  useEffect(() => {
-  const interceptor = axios.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  });
-
-  return () => axios.interceptors.request.eject(interceptor);
-}, []);
-
-  /* ── Restore user on page refresh ── */
-  useEffect(() => {
-    const restoreUser = async () => {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await axios.get("/api/auth/me");
-        setUser(response.data);
-      } catch (error) {
-        // Token expired or invalid — clear it
+  if (token) {
+    try {
+      // Decode JWT payload and check expiry client-side
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      if (payload.exp * 1000 < Date.now()) {
         localStorage.removeItem("token");
-        setUser(null);
-      } finally {
-        setLoading(false);
+        window.location.href = "/login";
+        return Promise.reject(new Error("Token expired"));
       }
-    };
-
-    restoreUser();
-  }, []);
-
-  /* ── Login ── */
-  const register = async (name, email, password) => {
-    try {
-      await axios.post("/api/auth/register", {
-        name,
-        email,
-        password,
-      });
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || "Registration failed",
-      };
+    } catch {
+      // Malformed token — clear it
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+      return Promise.reject(new Error("Invalid token"));
     }
-  };
 
-  const login = async (email, password) => {
-    try {
-      const response = await axios.post("/api/auth/login", {
-        email,
-        password,
-      });
+    config.headers.Authorization = `Bearer ${token}`;
+  }
 
-      localStorage.setItem("token", response.data.token);
+  return config;
+});
 
-      const me = await axios.get("/api/auth/me");
-      setUser(me.data);
-
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || "Invalid email or password",
-      };
+/* 🚨 Auto logout if server returns 401 or 403 */
+instance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
     }
-  };
+    return Promise.reject(error);
+  }
+);
 
-  /* ── Logout ── */
-  const logout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    window.location.href = "/";
-  };
-
-  return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
-};
-
-export const useAuth = () => useContext(AuthContext);
+export default instance;
