@@ -3,30 +3,26 @@ import axios from "axios";
 const instance = axios.create({
   baseURL: "https://career-planner-agent-2.onrender.com",
   headers: {
-    "Content-Type": "application/json"
-  }
+    "Content-Type": "application/json",
+  },
 });
 
-/* 🔐 Attach JWT Automatically (Except Auth Routes) */
+/* 🔐 Always attach token if exists */
 instance.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
 
-  if (
-    token &&
-    !config.url.includes("/api/auth/login") &&
-    !config.url.includes("/api/auth/register")
-  ) {
-    config.headers.Authorization = "Bearer " + token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;
 });
 
-/* 🚨 Auto Logout On 401 */
+/* 🚨 Auto logout if 401 */
 instance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    if (error.response?.status === 401) {
       localStorage.removeItem("token");
       window.location.href = "/login";
     }
