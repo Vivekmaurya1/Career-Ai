@@ -29,13 +29,25 @@ const saveLocalProgress = (id, data) => {
 const calcPercent = (progress, phases, weekly, projects, interview) => {
   const allProjects = ["beginner","intermediate","advanced"].flatMap(l => (projects[l]||[]).map((_,i) => `${l}-${i}`));
 
+  // PHASES: every individual topic across all phases
   const topicKeys = phases.flatMap((p,pi) => p.topics.map((_,ti) => `phase-${pi}-topic-${ti}`));
-  const weekKeys  = weekly.map((_,i) => `week-${i}`);
-  const projKeys  = allProjects;
+
+  // WEEKLY: week checkbox + each individual topic inside that week (both must be checked)
+  const weekKeys = weekly.flatMap((w,i) => {
+    const keys = [`week-${i}`]; // the main week checkbox
+    (w.topics_to_cover||[]).forEach((_,j) => keys.push(`week-${i}-topic-${j}`));
+    (w.practice_goals||[]).forEach((_,j) => keys.push(`week-${i}-practice-${j}`));
+    return keys;
+  });
+
+  // PROJECTS: every project card checkbox
+  const projKeys  = allProjects.map(k => `project-${k}`);
+
+  // INTERVIEW: every stage checkbox
   const ivKeys    = interview.map((_,i) => `interview-${i}`);
 
   const pct = (keys) => {
-    if (!keys.length) return 100; // empty section = complete
+    if (!keys.length) return 100; // empty section = not penalised
     const done = keys.filter(k => progress[k]).length;
     return Math.round((done / keys.length) * 100);
   };
@@ -344,8 +356,13 @@ export default function RoadmapPage() {
 
   // Section-level done counts for tab badges
   const topicTotal  = phases.flatMap((p,pi) => p.topics.map((_,ti) => `phase-${pi}-topic-${ti}`));
-  const weekTotal   = weekly.map((_,i) => `week-${i}`);
-  const projTotal   = allProjects.map(p => `project-${p.lvl}-${p.i}`);
+  const weekTotal   = weekly.flatMap((w,i) => {
+    const keys = [`week-${i}`];
+    (w.topics_to_cover||[]).forEach((_,j) => keys.push(`week-${i}-topic-${j}`));
+    (w.practice_goals||[]).forEach((_,j) => keys.push(`week-${i}-practice-${j}`));
+    return keys;
+  });
+  const projTotal   = allProjects.map(p => `project-${p.lvl}-${p.i}`);   // matches `project-${lvl}-${i}` in UI
   const ivTotal     = interview.map((_,i) => `interview-${i}`);
   const sectionDone = {
     PHASES:    topicTotal.filter(k=>progress[k]).length,
@@ -537,13 +554,31 @@ export default function RoadmapPage() {
                             {w.topics_to_cover?.length > 0 && (
                               <div>
                                 <div style={{ fontSize:8, letterSpacing:"0.18em", color:"rgba(245,158,11,0.5)", marginBottom:8 }}>TOPICS</div>
-                                {w.topics_to_cover.map((t,j) => <div key={j} style={{ display:"flex", gap:8, fontSize:11, color:"rgba(232,232,232,0.45)", lineHeight:1.8 }}><span style={{ color:"rgba(245,158,11,0.3)" }}>▸</span>{String(t)}</div>)}
+                                {w.topics_to_cover.map((t,j) => {
+                                  const tk = `week-${i}-topic-${j}`;
+                                  const td = !!progress[tk];
+                                  return (
+                                    <div key={j} style={{ display:"flex", gap:8, fontSize:11, color: td ? "rgba(34,197,94,0.6)" : "rgba(232,232,232,0.45)", lineHeight:1.8, alignItems:"center", textDecoration: td ? "line-through" : "none" }}>
+                                      <Checkbox checked={td} onChange={v => setProgress(p => ({ ...p, [tk]: v }))} size={13} />
+                                      {String(t)}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                             {w.practice_goals?.length > 0 && (
                               <div>
                                 <div style={{ fontSize:8, letterSpacing:"0.18em", color:"rgba(96,165,250,0.5)", marginBottom:8 }}>PRACTICE</div>
-                                {w.practice_goals.map((g,j) => <div key={j} style={{ display:"flex", gap:8, fontSize:11, color:"rgba(232,232,232,0.45)", lineHeight:1.8 }}><span style={{ color:"rgba(96,165,250,0.3)" }}>▸</span>{String(g)}</div>)}
+                                {w.practice_goals.map((g,j) => {
+                                  const pk = `week-${i}-practice-${j}`;
+                                  const pd = !!progress[pk];
+                                  return (
+                                    <div key={j} style={{ display:"flex", gap:8, fontSize:11, color: pd ? "rgba(34,197,94,0.6)" : "rgba(232,232,232,0.45)", lineHeight:1.8, alignItems:"center", textDecoration: pd ? "line-through" : "none" }}>
+                                      <Checkbox checked={pd} onChange={v => setProgress(p => ({ ...p, [pk]: v }))} size={13} />
+                                      {String(g)}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
                           </div>
