@@ -4,72 +4,70 @@ import axios from "../api/axios";
 
 const AuthContext = createContext();
 
-export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
+// NOTE: ThemeContext is NOT imported here to avoid a circular dependency.
+// Instead, AuthContext accepts an optional `onThemeChange` callback that
+// App.jsx passes down. This keeps the two contexts fully decoupled.
+
+export const AuthProvider = ({ children, onThemeChange }) => {
+  const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // ── FIXED: Removed the duplicate request interceptor that was here.
-  // The axios instance in api/axios.js already attaches the token to every request.
-  // Adding a second interceptor here caused the header to be set twice and
-  // created a new interceptor registration on every render cycle.
+  /* ── Apply theme whenever user changes ───────────────────────────────── */
+  // onThemeChange is ThemeContext.setThemeFromUser, passed from App.jsx
+  useEffect(() => {
+    if (user?.theme && onThemeChange) {
+      onThemeChange(user.theme);
+    }
+  }, [user?.theme, onThemeChange]);
 
-  /* ── Restore user on page refresh ── */
+  /* ── Restore session on page refresh ────────────────────────────────── */
   useEffect(() => {
     const restoreUser = async () => {
       const token = localStorage.getItem("token");
-
-      if (!token) {
-        setLoading(false);
-        return;
-      }
+      if (!token) { setLoading(false); return; }
 
       try {
-        const response = await axios.get("/api/auth/me");
-        setUser(response.data);
+        const { data } = await axios.get("/api/auth/me");
+        setUser(data);
+        // theme applied via the useEffect above when user state updates
       } catch {
-        // Token expired or invalid — clear it
         localStorage.removeItem("token");
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
-
     restoreUser();
   }, []);
 
-  /* ── Register ── */
+  /* ── Register ────────────────────────────────────────────────────────── */
   const register = async (name, email, password) => {
     try {
       await axios.post("/api/auth/register", { name, email, password });
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || "Registration failed",
-      };
+      return { success: false, message: error.response?.data?.message || "Registration failed" };
     }
   };
 
-  /* ── Login ── */
+  /* ── Login ───────────────────────────────────────────────────────────── */
   const login = async (email, password) => {
     try {
-      const response = await axios.post("/api/auth/login", { email, password });
-      localStorage.setItem("token", response.data.token);
+      const { data: tokenData } = await axios.post("/api/auth/login", { email, password });
+      localStorage.setItem("token", tokenData.token);
 
-      const me = await axios.get("/api/auth/me");
-      setUser(me.data);
+      // Fetch full profile (includes theme)
+      const { data: me } = await axios.get("/api/auth/me");
+      setUser(me);
+      // theme applied via useEffect above
 
       return { success: true };
     } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || "Invalid email or password",
-      };
+      return { success: false, message: error.response?.data?.message || "Invalid email or password" };
     }
   };
 
-  /* ── Logout ── */
+  /* ── Logout ──────────────────────────────────────────────────────────── */
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
@@ -77,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading, setUser }}>
       {!loading && children}
     </AuthContext.Provider>
   );

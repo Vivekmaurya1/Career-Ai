@@ -1,1 +1,333 @@
 @import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════
+   CareerAI — Theme System
+   Applied via data-theme="<id>" on <html>
+   All components consume these variables.
+═══════════════════════════════════════════════════════════════ */
+
+/* ── DEFAULT / DARK TERMINAL ── */
+:root,
+[data-theme="dark"] {
+  --bg:           #080808;
+  --bg-surface:   #0a0a0a;
+  --bg-raised:    #0e0e0e;
+  --bg-overlay:   rgba(8,8,8,0.95);
+
+  --border:       rgba(255,255,255,0.07);
+  --border-hover: rgba(245,158,11,0.35);
+  --border-focus: rgba(245,158,11,0.5);
+
+  --accent:       #f59e0b;
+  --accent-bright:#fbbf24;
+  --accent-dim:   rgba(245,158,11,0.1);
+  --accent-glow:  rgba(245,158,11,0.25);
+  --accent-border:rgba(245,158,11,0.35);
+
+  --text:         #e8e8e8;
+  --text-heading: #f0f0f0;
+  --text-muted:   rgba(232,232,232,0.45);
+  --text-dim:     rgba(232,232,232,0.25);
+  --text-faint:   rgba(232,232,232,0.15);
+
+  --success:      #22c55e;
+  --success-bg:   rgba(34,197,94,0.1);
+  --success-border:rgba(34,197,94,0.25);
+
+  --danger:       #ef4444;
+  --danger-bg:    rgba(239,68,68,0.07);
+  --danger-border:rgba(239,68,68,0.2);
+
+  --info:         #60a5fa;
+  --purple:       #c084fc;
+
+  /* Grid overlay */
+  --grid-color:   rgba(245,158,11,0.4);
+  --grid-opacity: 0.025;
+
+  /* Gradients */
+  --gradient-accent: linear-gradient(90deg, transparent, var(--accent), transparent);
+  --gradient-bg:     linear-gradient(135deg, var(--bg), var(--bg-surface));
+
+  /* Input */
+  --input-bg:     rgba(255,255,255,0.03);
+  --input-border: rgba(255,255,255,0.09);
+  --input-focus-bg: rgba(245,158,11,0.03);
+  --input-focus-shadow: 0 0 0 2px rgba(245,158,11,0.08);
+
+  /* Scrollbar */
+  --scrollbar-track: #0a0a0a;
+  --scrollbar-thumb: rgba(245,158,11,0.2);
+  --scrollbar-thumb-hover: rgba(245,158,11,0.4);
+}
+
+/* ── PITCH BLACK ── */
+[data-theme="darker"] {
+  --bg:           #000000;
+  --bg-surface:   #050505;
+  --bg-raised:    #0a0a0a;
+  --bg-overlay:   rgba(0,0,0,0.97);
+
+  --border:       rgba(255,255,255,0.06);
+  --border-hover: rgba(245,158,11,0.4);
+  --border-focus: rgba(245,158,11,0.55);
+
+  --accent:       #f59e0b;
+  --accent-bright:#fbbf24;
+  --accent-dim:   rgba(245,158,11,0.1);
+  --accent-glow:  rgba(245,158,11,0.2);
+  --accent-border:rgba(245,158,11,0.3);
+
+  --text:         #e0e0e0;
+  --text-heading: #f0f0f0;
+  --text-muted:   rgba(224,224,224,0.4);
+  --text-dim:     rgba(224,224,224,0.22);
+  --text-faint:   rgba(224,224,224,0.12);
+
+  --success:      #22c55e;
+  --success-bg:   rgba(34,197,94,0.09);
+  --success-border:rgba(34,197,94,0.22);
+
+  --danger:       #ef4444;
+  --danger-bg:    rgba(239,68,68,0.07);
+  --danger-border:rgba(239,68,68,0.2);
+
+  --info:         #60a5fa;
+  --purple:       #c084fc;
+
+  --grid-color:   rgba(245,158,11,0.35);
+  --grid-opacity: 0.02;
+
+  --gradient-accent: linear-gradient(90deg, transparent, var(--accent), transparent);
+  --gradient-bg:     linear-gradient(135deg, #000000, #050505);
+
+  --input-bg:     rgba(255,255,255,0.02);
+  --input-border: rgba(255,255,255,0.07);
+  --input-focus-bg: rgba(245,158,11,0.03);
+  --input-focus-shadow: 0 0 0 2px rgba(245,158,11,0.08);
+
+  --scrollbar-track: #050505;
+  --scrollbar-thumb: rgba(245,158,11,0.15);
+  --scrollbar-thumb-hover: rgba(245,158,11,0.35);
+}
+
+/* ── AMBER NIGHT ── */
+[data-theme="amber"] {
+  --bg:           #0d0800;
+  --bg-surface:   #120b00;
+  --bg-raised:    #180f00;
+  --bg-overlay:   rgba(13,8,0,0.96);
+
+  --border:       rgba(249,115,22,0.12);
+  --border-hover: rgba(249,115,22,0.4);
+  --border-focus: rgba(249,115,22,0.6);
+
+  --accent:       #f97316;
+  --accent-bright:#fb923c;
+  --accent-dim:   rgba(249,115,22,0.12);
+  --accent-glow:  rgba(249,115,22,0.25);
+  --accent-border:rgba(249,115,22,0.35);
+
+  --text:         #fde8d0;
+  --text-heading: #fff0e0;
+  --text-muted:   rgba(253,232,208,0.5);
+  --text-dim:     rgba(253,232,208,0.28);
+  --text-faint:   rgba(253,232,208,0.14);
+
+  --success:      #4ade80;
+  --success-bg:   rgba(74,222,128,0.08);
+  --success-border:rgba(74,222,128,0.22);
+
+  --danger:       #f87171;
+  --danger-bg:    rgba(248,113,113,0.08);
+  --danger-border:rgba(248,113,113,0.22);
+
+  --info:         #fbbf24;
+  --purple:       #f59e0b;
+
+  --grid-color:   rgba(249,115,22,0.5);
+  --grid-opacity: 0.025;
+
+  --gradient-accent: linear-gradient(90deg, transparent, var(--accent), transparent);
+  --gradient-bg:     linear-gradient(135deg, #0d0800, #120b00);
+
+  --input-bg:     rgba(249,115,22,0.04);
+  --input-border: rgba(249,115,22,0.1);
+  --input-focus-bg: rgba(249,115,22,0.06);
+  --input-focus-shadow: 0 0 0 2px rgba(249,115,22,0.1);
+
+  --scrollbar-track: #120b00;
+  --scrollbar-thumb: rgba(249,115,22,0.2);
+  --scrollbar-thumb-hover: rgba(249,115,22,0.45);
+}
+
+/* ── MATRIX GREEN ── */
+[data-theme="green"] {
+  --bg:           #010d01;
+  --bg-surface:   #021102;
+  --bg-raised:    #041604;
+  --bg-overlay:   rgba(1,13,1,0.96);
+
+  --border:       rgba(34,197,94,0.1);
+  --border-hover: rgba(34,197,94,0.4);
+  --border-focus: rgba(34,197,94,0.6);
+
+  --accent:       #22c55e;
+  --accent-bright:#4ade80;
+  --accent-dim:   rgba(34,197,94,0.1);
+  --accent-glow:  rgba(34,197,94,0.22);
+  --accent-border:rgba(34,197,94,0.35);
+
+  --text:         #ccfcd5;
+  --text-heading: #e0ffe6;
+  --text-muted:   rgba(204,252,213,0.5);
+  --text-dim:     rgba(204,252,213,0.28);
+  --text-faint:   rgba(204,252,213,0.14);
+
+  --success:      #22c55e;
+  --success-bg:   rgba(34,197,94,0.1);
+  --success-border:rgba(34,197,94,0.25);
+
+  --danger:       #f87171;
+  --danger-bg:    rgba(248,113,113,0.08);
+  --danger-border:rgba(248,113,113,0.22);
+
+  --info:         #86efac;
+  --purple:       #4ade80;
+
+  --grid-color:   rgba(34,197,94,0.5);
+  --grid-opacity: 0.025;
+
+  --gradient-accent: linear-gradient(90deg, transparent, var(--accent), transparent);
+  --gradient-bg:     linear-gradient(135deg, #010d01, #021102);
+
+  --input-bg:     rgba(34,197,94,0.04);
+  --input-border: rgba(34,197,94,0.1);
+  --input-focus-bg: rgba(34,197,94,0.06);
+  --input-focus-shadow: 0 0 0 2px rgba(34,197,94,0.1);
+
+  --scrollbar-track: #021102;
+  --scrollbar-thumb: rgba(34,197,94,0.2);
+  --scrollbar-thumb-hover: rgba(34,197,94,0.45);
+}
+
+/* ── CYBERPUNK BLUE ── */
+[data-theme="blue"] {
+  --bg:           #00050d;
+  --bg-surface:   #000812;
+  --bg-raised:    #000c1a;
+  --bg-overlay:   rgba(0,5,13,0.96);
+
+  --border:       rgba(96,165,250,0.1);
+  --border-hover: rgba(96,165,250,0.4);
+  --border-focus: rgba(96,165,250,0.6);
+
+  --accent:       #60a5fa;
+  --accent-bright:#93c5fd;
+  --accent-dim:   rgba(96,165,250,0.1);
+  --accent-glow:  rgba(96,165,250,0.22);
+  --accent-border:rgba(96,165,250,0.35);
+
+  --text:         #cce4ff;
+  --text-heading: #e0f0ff;
+  --text-muted:   rgba(204,228,255,0.5);
+  --text-dim:     rgba(204,228,255,0.28);
+  --text-faint:   rgba(204,228,255,0.14);
+
+  --success:      #34d399;
+  --success-bg:   rgba(52,211,153,0.08);
+  --success-border:rgba(52,211,153,0.22);
+
+  --danger:       #f87171;
+  --danger-bg:    rgba(248,113,113,0.08);
+  --danger-border:rgba(248,113,113,0.22);
+
+  --info:         #60a5fa;
+  --purple:       #818cf8;
+
+  --grid-color:   rgba(96,165,250,0.5);
+  --grid-opacity: 0.025;
+
+  --gradient-accent: linear-gradient(90deg, transparent, var(--accent), transparent);
+  --gradient-bg:     linear-gradient(135deg, #00050d, #000812);
+
+  --input-bg:     rgba(96,165,250,0.04);
+  --input-border: rgba(96,165,250,0.1);
+  --input-focus-bg: rgba(96,165,250,0.06);
+  --input-focus-shadow: 0 0 0 2px rgba(96,165,250,0.1);
+
+  --scrollbar-track: #000812;
+  --scrollbar-thumb: rgba(96,165,250,0.2);
+  --scrollbar-thumb-hover: rgba(96,165,250,0.45);
+}
+
+/* ── DEEP PURPLE ── */
+[data-theme="violet"] {
+  --bg:           #05010d;
+  --bg-surface:   #080212;
+  --bg-raised:    #0d0418;
+  --bg-overlay:   rgba(5,1,13,0.96);
+
+  --border:       rgba(167,139,250,0.1);
+  --border-hover: rgba(167,139,250,0.4);
+  --border-focus: rgba(167,139,250,0.6);
+
+  --accent:       #a78bfa;
+  --accent-bright:#c4b5fd;
+  --accent-dim:   rgba(167,139,250,0.1);
+  --accent-glow:  rgba(167,139,250,0.22);
+  --accent-border:rgba(167,139,250,0.35);
+
+  --text:         #ede0ff;
+  --text-heading: #f5edff;
+  --text-muted:   rgba(237,224,255,0.5);
+  --text-dim:     rgba(237,224,255,0.28);
+  --text-faint:   rgba(237,224,255,0.14);
+
+  --success:      #34d399;
+  --success-bg:   rgba(52,211,153,0.08);
+  --success-border:rgba(52,211,153,0.22);
+
+  --danger:       #f87171;
+  --danger-bg:    rgba(248,113,113,0.08);
+  --danger-border:rgba(248,113,113,0.22);
+
+  --info:         #818cf8;
+  --purple:       #a78bfa;
+
+  --grid-color:   rgba(167,139,250,0.5);
+  --grid-opacity: 0.025;
+
+  --gradient-accent: linear-gradient(90deg, transparent, var(--accent), transparent);
+  --gradient-bg:     linear-gradient(135deg, #05010d, #080212);
+
+  --input-bg:     rgba(167,139,250,0.04);
+  --input-border: rgba(167,139,250,0.1);
+  --input-focus-bg: rgba(167,139,250,0.06);
+  --input-focus-shadow: 0 0 0 2px rgba(167,139,250,0.1);
+
+  --scrollbar-track: #080212;
+  --scrollbar-thumb: rgba(167,139,250,0.2);
+  --scrollbar-thumb-hover: rgba(167,139,250,0.45);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL RESETS & SCROLLBAR
+═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  transition: background 0.4s ease, color 0.3s ease;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
