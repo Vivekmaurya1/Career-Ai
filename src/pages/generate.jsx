@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 const ROLES     = ["Frontend Developer","Backend Developer","Full Stack Engineer","Data Scientist","ML Engineer","DevOps Engineer","Mobile Developer","Product Manager","UI/UX Designer","Cloud Architect"];
 const TIMES     = ["30 min","1 hour","2 hours","3 hours","4+ hours"];
 const DURATIONS = ["1 month","2 months","3 months","6 months","12 months"];
+const EXP_YEARS = ["0–1 years","1–3 years","3–5 years","5–10 years","10+ years"];
 const SESSION_KEY = "roadmap_generation_state";
 
 const LOG_LINES = [
@@ -138,26 +139,14 @@ function LoadingTerminal({ role, done, cancelled, onCancel }) {
           transition={{ delay: 1.2 }}
           onClick={onCancel}
           style={{
-            padding: "10px 32px",
-            background: "transparent",
-            border: "1px solid var(--danger-border)",
-            borderRadius: 2,
-            color: "var(--danger)",
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 11,
-            letterSpacing: "0.14em",
-            cursor: "pointer",
-            transition: "all 0.2s",
-            opacity: 0.7,
+            padding: "10px 32px", background: "transparent",
+            border: "1px solid var(--danger-border)", borderRadius: 2,
+            color: "var(--danger)", fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 11, letterSpacing: "0.14em", cursor: "pointer",
+            transition: "all 0.2s", opacity: 0.7,
           }}
-          onMouseEnter={e => {
-            e.currentTarget.style.opacity = "1";
-            e.currentTarget.style.background = "var(--danger-bg)";
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.opacity = "0.7";
-            e.currentTarget.style.background = "transparent";
-          }}
+          onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.background = "var(--danger-bg)"; }}
+          onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.background = "transparent"; }}
         >
           CANCEL GENERATION
         </motion.button>
@@ -172,14 +161,15 @@ export default function Generate() {
   const navigate = useNavigate();
 
   const getSaved = () => {
-    try {
-      const raw = sessionStorage.getItem(SESSION_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
+    try { const raw = sessionStorage.getItem(SESSION_KEY); return raw ? JSON.parse(raw) : null; }
+    catch { return null; }
   };
   const saved = getSaved();
 
-  const [form, setForm]           = useState(saved?.form || { role: "", level: "", time: "", duration: "" });
+  // ── form state now includes yearsOfExperience ──
+  const [form, setForm] = useState(
+    saved?.form || { role: "", level: "", yearsOfExperience: "", time: "", duration: "" }
+  );
   const [loading, setLoading]     = useState(saved?.loading || false);
   const [done, setDone]           = useState(false);
   const [cancelled, setCancelled] = useState(false);
@@ -207,19 +197,14 @@ export default function Generate() {
       if (!loadingRef.current) return;
       window.history.pushState({ sentinel: true }, "");
       const confirmed = window.confirm("Roadmap is still generating. Are you sure you want to leave?");
-      if (confirmed) {
-        sessionStorage.removeItem(SESSION_KEY);
-        window.history.go(-2);
-      }
+      if (confirmed) { sessionStorage.removeItem(SESSION_KEY); window.history.go(-2); }
     };
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ form, loading }));
-    } catch {}
+    try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ form, loading })); } catch {}
   }, [form, loading]);
 
   const handleCancel = async () => {
@@ -255,8 +240,11 @@ export default function Generate() {
       (async () => {
         try {
           const id = await runGenerate({
-            role: saved.form.role, level: saved.form.level,
-            timePerDay: saved.form.time, duration: saved.form.duration,
+            role: saved.form.role,
+            level: saved.form.level,
+            yearsOfExperience: saved.form.yearsOfExperience,
+            timePerDay: saved.form.time,
+            duration: saved.form.duration,
           });
           if (id === null) return;
           sessionStorage.removeItem(SESSION_KEY);
@@ -274,15 +262,19 @@ export default function Generate() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.role.trim()) return setError("Please enter a target role");
-    if (!form.level)       return setError("Please select experience level");
-    if (!form.time)        return setError("Please select daily study time");
+    if (!form.role.trim())  return setError("Please enter a target role");
+    if (!form.level)        return setError("Please select experience level");
+    if (!form.yearsOfExperience) return setError("Please select years of experience");
+    if (!form.time)         return setError("Please select daily study time");
     setError("");
     setLoading(true);
     try {
       const id = await runGenerate({
-        role: form.role, level: form.level,
-        timePerDay: form.time, duration: form.duration,
+        role: form.role,
+        level: form.level,
+        yearsOfExperience: form.yearsOfExperience,
+        timePerDay: form.time,
+        duration: form.duration,
       });
       if (id === null) return;
       sessionStorage.removeItem(SESSION_KEY);
@@ -305,6 +297,9 @@ export default function Generate() {
       />
     );
   }
+
+  // readiness = 5 fields now
+  const filledCount = [form.role, form.level, form.yearsOfExperience, form.time, form.duration].filter(Boolean).length;
 
   return (
     <>
@@ -332,7 +327,7 @@ export default function Generate() {
           background: var(--input-bg); transition:all 0.15s; white-space:nowrap;
         }
         .pill-option:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-dim); }
-        .pill-option.sel { border-color: var(--border-focus); color: var(--accent); background: var(--accent-dim); }
+        .pill-option.sel   { border-color: var(--border-focus); color: var(--accent); background: var(--accent-dim); }
         .gen-input {
           width:100%; padding:12px 16px;
           background: var(--input-bg);
@@ -380,7 +375,7 @@ export default function Generate() {
               {/* LEFT */}
               <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
 
-                {/* 01 Role */}
+                {/* 01 — Role */}
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                     <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "var(--accent-dim)", lineHeight: 1 }}>01</span>
@@ -400,7 +395,7 @@ export default function Generate() {
                   </div>
                 </motion.div>
 
-                {/* 02 Level */}
+                {/* 02 — Experience Level */}
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                     <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "var(--accent-dim)", lineHeight: 1 }}>02</span>
@@ -430,12 +425,39 @@ export default function Generate() {
                   </div>
                 </motion.div>
 
-                {/* 03 + 04 */}
+                {/* 03 — Years of Experience (NEW) */}
                 <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                    <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "var(--accent-dim)", lineHeight: 1 }}>03</span>
+                    <div>
+                      <div style={{ fontSize: 10, letterSpacing: "0.16em", color: "var(--accent)", marginBottom: 2 }}>YEARS OF EXPERIENCE</div>
+                      <div style={{ fontSize: 12, color: "var(--text-muted)" }}>How long have you been in the field?</div>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {EXP_YEARS.map(exp => (
+                      <button key={exp} type="button"
+                        onClick={() => setForm({ ...form, yearsOfExperience: exp })}
+                        style={{
+                          padding: "14px 20px", borderRadius: 2, cursor: "pointer",
+                          textAlign: "center", transition: "all 0.15s", flex: "1 1 calc(20% - 8px)", minWidth: 100,
+                          border: `1px solid ${form.yearsOfExperience === exp ? "var(--border-focus)" : "var(--border)"}`,
+                          background: form.yearsOfExperience === exp ? "var(--accent-dim)" : "var(--input-bg)",
+                        }}>
+                        <div style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", color: form.yearsOfExperience === exp ? "var(--accent)" : "var(--text-muted)" }}>
+                          {exp}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* 04 & 05 — Daily Time + Duration */}
+                <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                        <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "var(--accent-dim)", lineHeight: 1 }}>03</span>
+                        <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "var(--accent-dim)", lineHeight: 1 }}>04</span>
                         <div>
                           <div style={{ fontSize: 10, letterSpacing: "0.16em", color: "var(--accent)", marginBottom: 2 }}>DAILY TIME</div>
                           <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Hours available per day</div>
@@ -450,7 +472,7 @@ export default function Generate() {
                     </div>
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-                        <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "var(--accent-dim)", lineHeight: 1 }}>04</span>
+                        <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 32, color: "var(--accent-dim)", lineHeight: 1 }}>05</span>
                         <div>
                           <div style={{ fontSize: 10, letterSpacing: "0.16em", color: "var(--accent)", marginBottom: 2 }}>DURATION</div>
                           <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Target completion timeline</div>
@@ -475,7 +497,7 @@ export default function Generate() {
                 <button type="submit" className="gen-btn">GENERATE MY ROADMAP →</button>
               </div>
 
-              {/* RIGHT: Live preview */}
+              {/* RIGHT — Live preview */}
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }}
                 style={{ position: "sticky", top: 90, alignSelf: "start" }}>
                 <div style={{ border: "1px solid var(--accent-dim)", borderRadius: 4, overflow: "hidden", background: "var(--bg-surface)" }}>
@@ -487,14 +509,16 @@ export default function Generate() {
                   </div>
                   <div style={{ padding: 20, fontFamily: "'IBM Plex Mono',monospace", fontSize: 12 }}>
                     {[
-                      { k: "role",     v: form.role     || '""',               color: form.role     ? "var(--info)" : "var(--text-faint)" },
-                      { k: "level",    v: form.level    ? `"${form.level}"`    : '""', color: form.level    ? "var(--success)" : "var(--text-faint)" },
-                      { k: "time",     v: form.time     ? `"${form.time}/day"` : '""', color: form.time     ? "var(--purple)" : "var(--text-faint)" },
-                      { k: "duration", v: form.duration ? `"${form.duration}"` : '""', color: form.duration ? "var(--accent-bright)" : "var(--text-faint)" },
-                      { k: "status",   v: form.role && form.level && form.time ? '"READY"' : '"PENDING"', color: form.role && form.level && form.time ? "var(--accent)" : "var(--text-faint)" },
+                      { k: "role",       v: form.role             || '""', color: form.role             ? "var(--info)"         : "var(--text-faint)" },
+                      { k: "level",      v: form.level            ? `"${form.level}"`            : '""', color: form.level            ? "var(--success)"     : "var(--text-faint)" },
+                      { k: "experience", v: form.yearsOfExperience ? `"${form.yearsOfExperience}"` : '""', color: form.yearsOfExperience ? "var(--purple)"      : "var(--text-faint)" },
+                      { k: "time",       v: form.time             ? `"${form.time}/day"`         : '""', color: form.time             ? "var(--accent)"      : "var(--text-faint)" },
+                      { k: "duration",   v: form.duration         ? `"${form.duration}"`         : '""', color: form.duration         ? "var(--accent-bright)": "var(--text-faint)" },
+                      { k: "status",     v: form.role && form.level && form.yearsOfExperience && form.time ? '"READY"' : '"PENDING"',
+                        color: form.role && form.level && form.yearsOfExperience && form.time ? "var(--accent)" : "var(--text-faint)" },
                     ].map((l, i) => (
                       <div key={i} style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
-                        <span style={{ color: "var(--accent-border)", minWidth: 60 }}>{l.k}:</span>
+                        <span style={{ color: "var(--accent-border)", minWidth: 68 }}>{l.k}:</span>
                         <span style={{ color: l.color, transition: "color 0.3s" }}>{l.v}</span>
                       </div>
                     ))}
@@ -503,11 +527,11 @@ export default function Generate() {
                       <div style={{ height: 3, background: "var(--border)", borderRadius: 1, overflow: "hidden" }}>
                         <div style={{
                           height: "100%", borderRadius: 1, background: "var(--accent)", transition: "width 0.4s",
-                          width: `${[form.role, form.level, form.time, form.duration].filter(Boolean).length * 25}%`,
+                          width: `${filledCount * 20}%`,
                         }} />
                       </div>
                       <div style={{ fontSize: 10, color: "var(--accent)", marginTop: 6 }}>
-                        {[form.role, form.level, form.time, form.duration].filter(Boolean).length}/4 fields complete
+                        {filledCount}/5 fields complete
                       </div>
                     </div>
                   </div>

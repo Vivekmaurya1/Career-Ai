@@ -39,31 +39,12 @@ function DeleteConfirm({ onConfirm, onCancel, loading }) {
         <span style={{ color: "var(--text-dim)", fontSize: 10 }}>This cannot be undone.</span>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
-        <button
-          onClick={onConfirm}
-          disabled={loading}
-          style={{
-            flex: 1, padding: "7px 0",
-            background: loading ? "var(--danger-bg)" : "var(--danger-bg)",
-            border: "1px solid var(--danger-border)", borderRadius: 2,
-            color: "var(--danger)", fontFamily: "'IBM Plex Mono',monospace",
-            fontSize: 10, letterSpacing: "0.1em", cursor: loading ? "not-allowed" : "pointer",
-            transition: "all 0.15s",
-          }}
-        >
+        <button onClick={onConfirm} disabled={loading}
+          style={{ flex: 1, padding: "7px 0", background: "var(--danger-bg)", border: "1px solid var(--danger-border)", borderRadius: 2, color: "var(--danger)", fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, letterSpacing: "0.1em", cursor: loading ? "not-allowed" : "pointer", transition: "all 0.15s" }}>
           {loading ? "DELETING..." : "DELETE"}
         </button>
-        <button
-          onClick={onCancel}
-          disabled={loading}
-          style={{
-            flex: 1, padding: "7px 0", background: "transparent",
-            border: "1px solid var(--border)", borderRadius: 2,
-            color: "var(--text-dim)", fontFamily: "'IBM Plex Mono',monospace",
-            fontSize: 10, letterSpacing: "0.1em", cursor: "pointer",
-            transition: "all 0.15s",
-          }}
-        >
+        <button onClick={onCancel} disabled={loading}
+          style={{ flex: 1, padding: "7px 0", background: "transparent", border: "1px solid var(--border)", borderRadius: 2, color: "var(--text-dim)", fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, letterSpacing: "0.1em", cursor: "pointer", transition: "all 0.15s" }}>
           CANCEL
         </button>
       </div>
@@ -75,14 +56,11 @@ function DeleteConfirm({ onConfirm, onCancel, loading }) {
 
 function RoadmapCard({ roadmap, index, onClick, onDelete }) {
   const badge = getLevelBadge(roadmap.level);
-  const [hovered, setHovered]           = useState(false);
-  const [showConfirm, setShowConfirm]   = useState(false);
+  const [hovered, setHovered]             = useState(false);
+  const [showConfirm, setShowConfirm]     = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
 
-  const handleDeleteClick = (e) => {
-    e.stopPropagation();
-    setShowConfirm(true);
-  };
+  const handleDeleteClick = (e) => { e.stopPropagation(); setShowConfirm(true); };
 
   const handleConfirm = async (e) => {
     e.stopPropagation();
@@ -97,10 +75,7 @@ function RoadmapCard({ roadmap, index, onClick, onDelete }) {
     }
   };
 
-  const handleCancel = (e) => {
-    e.stopPropagation();
-    setShowConfirm(false);
-  };
+  const handleCancel = (e) => { e.stopPropagation(); setShowConfirm(false); };
 
   return (
     <motion.div
@@ -121,19 +96,33 @@ function RoadmapCard({ roadmap, index, onClick, onDelete }) {
         boxShadow: hovered ? `0 16px 48px rgba(0,0,0,0.5), 0 0 30px var(--accent-dim)` : "none",
         transition: "all 0.25s cubic-bezier(0.34,1.56,0.64,1)",
       }}>
-        {/* Accent top stripe on hover */}
+        {/* Accent stripe */}
         <div style={{ height: 2, borderRadius: "4px 4px 0 0", background: hovered ? "var(--gradient-accent)" : "transparent", transition: "background 0.25s" }} />
 
         <div style={{ padding: 24 }}>
-          {/* Top row: badge + delete + arrow */}
+          {/* Top row: level badge + delete + arrow */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-            <span style={{
-              fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: "0.16em",
-              padding: "4px 10px", border: `1px solid ${badge.border}`, borderRadius: 2,
-              background: badge.bg, color: badge.color,
-            }}>
-              {(roadmap.level || "CUSTOM").toUpperCase()}
-            </span>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {/* Level badge */}
+              <span style={{
+                fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: "0.16em",
+                padding: "4px 10px", border: `1px solid ${badge.border}`, borderRadius: 2,
+                background: badge.bg, color: badge.color,
+              }}>
+                {(roadmap.level || "CUSTOM").toUpperCase()}
+              </span>
+              {/* Years of experience badge — NEW */}
+              {roadmap.yearsOfExperience && (
+                <span style={{
+                  fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: "0.12em",
+                  padding: "4px 10px", border: "1px solid var(--border)", borderRadius: 2,
+                  background: "var(--input-bg)", color: "var(--text-muted)",
+                  display: "flex", alignItems: "center", gap: 4,
+                }}>
+                  🕐 {roadmap.yearsOfExperience}
+                </span>
+              )}
+            </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: 10, position: "relative" }}>
               <motion.button
@@ -143,12 +132,9 @@ function RoadmapCard({ roadmap, index, onClick, onDelete }) {
                 onClick={handleDeleteClick}
                 title="Delete roadmap"
                 style={{
-                  background: "transparent",
-                  border: "1px solid var(--danger-border)",
-                  borderRadius: 2, padding: "4px 8px",
-                  cursor: "pointer", color: "var(--danger)",
-                  fontFamily: "'IBM Plex Mono',monospace",
-                  fontSize: 9, letterSpacing: "0.1em",
+                  background: "transparent", border: "1px solid var(--danger-border)",
+                  borderRadius: 2, padding: "4px 8px", cursor: "pointer", color: "var(--danger)",
+                  fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: "0.1em",
                   transition: "all 0.15s", pointerEvents: hovered ? "auto" : "none",
                   display: "flex", alignItems: "center", gap: 4, opacity: 0.6,
                 }}
@@ -163,11 +149,7 @@ function RoadmapCard({ roadmap, index, onClick, onDelete }) {
 
               <AnimatePresence>
                 {showConfirm && (
-                  <DeleteConfirm
-                    onConfirm={handleConfirm}
-                    onCancel={handleCancel}
-                    loading={deleteLoading}
-                  />
+                  <DeleteConfirm onConfirm={handleConfirm} onCancel={handleCancel} loading={deleteLoading} />
                 )}
               </AnimatePresence>
 
@@ -186,7 +168,7 @@ function RoadmapCard({ roadmap, index, onClick, onDelete }) {
             {roadmap.role}
           </div>
 
-          {/* Chips */}
+          {/* Meta chips */}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
             {roadmap.timePerDay && (
               <span style={{ fontFamily: "'IBM Plex Mono',monospace", fontSize: 10, color: "var(--text-muted)", padding: "3px 8px", border: "1px solid var(--border)", borderRadius: 2 }}>
@@ -257,8 +239,7 @@ export default function Dashboard() {
         @keyframes spin  { to { transform:rotate(360deg) } }
         @keyframes blink { 50% { opacity:0 } }
         .db-root {
-          min-height:100vh;
-          background: var(--bg);
+          min-height:100vh; background: var(--bg);
           font-family:'IBM Plex Mono',monospace;
           padding:calc(var(--navbar-height,56px) + 48px) 40px 80px;
           position:relative; overflow-x:hidden;
@@ -277,17 +258,14 @@ export default function Dashboard() {
           transition: border-color 0.2s, background 0.4s;
         }
         .db-stat:hover { border-color: var(--border-hover); }
-        .db-stat::before {
-          content:''; position:absolute; top:0; left:0; right:0; height:1px;
-          background: var(--gradient-accent);
-        }
+        .db-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background: var(--gradient-accent); }
         .filter-btn {
           padding:7px 16px; border:1px solid var(--border); background:transparent;
           color: var(--text-muted); font-family:'IBM Plex Mono',monospace;
           font-size:10px; letter-spacing:0.12em; cursor:pointer; border-radius:2px;
           transition:all 0.15s;
         }
-        .filter-btn:hover { border-color: var(--accent-border); color: var(--accent); }
+        .filter-btn:hover  { border-color: var(--accent-border); color: var(--accent); }
         .filter-btn.active { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); }
         .new-btn {
           padding:10px 22px; background: var(--accent); color: var(--bg);
@@ -387,9 +365,7 @@ export default function Dashboard() {
                 <AnimatePresence mode="popLayout">
                   {filtered.map((r, i) => (
                     <RoadmapCard
-                      key={r.id}
-                      roadmap={r}
-                      index={i}
+                      key={r.id} roadmap={r} index={i}
                       onClick={() => navigate(`/roadmap/${r.id}`)}
                       onDelete={handleDelete}
                     />
@@ -398,7 +374,6 @@ export default function Dashboard() {
               </motion.div>
             </>
           )}
-
         </div>
       </div>
     </>
