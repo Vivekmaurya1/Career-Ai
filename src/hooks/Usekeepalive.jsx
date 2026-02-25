@@ -10,10 +10,8 @@ export function useKeepAlive(intervalMs = 10 * 60 * 1000) {
   useEffect(() => {
     // Ping immediately on mount so the server wakes up before user tries to log in
     const ping = () => {
-      axios.get("/actuator/health").catch(() =>
         // fallback if actuator not enabled — any public endpoint works
-        axios.get("/api/auth/ping").catch(() => {})
-      );
+        axios.get("/api/auth/ping").catch(() => {});
     };
 
     ping(); // immediate wake-up ping
