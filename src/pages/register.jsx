@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
+import ServerWakeup from "../components/ServerWakeup";
 
 export default function Register() {
   const { register } = useAuth();
@@ -53,6 +54,9 @@ export default function Register() {
         .password-strength-fill { height:100%; border-radius:1px; transition:width 0.3s, background 0.3s; }
       `}</style>
 
+      {/* Shows "WAKING UP SERVER..." toast if backend is cold starting */}
+      <ServerWakeup />
+
       <div className="auth-root">
         <div className="auth-glow" />
         <div style={{ position:"fixed", inset:0, pointerEvents:"none", opacity:0.025, backgroundImage:"repeating-linear-gradient(0deg,rgba(255,255,255,0.5) 0px,rgba(255,255,255,0.5) 1px,transparent 1px,transparent 2px)", backgroundSize:"100% 2px" }} />
@@ -71,9 +75,9 @@ export default function Register() {
 
             <form onSubmit={handleSubmit}>
               {[
-                { key:"name", label:"Full Name", type:"text", placeholder:"Your full name" },
-                { key:"email", label:"Email Address", type:"email", placeholder:"you@example.com" },
-                { key:"password", label:"Password", type:"password", placeholder:"Min. 8 characters" },
+                { key:"name",     label:"Full Name",      type:"text",     placeholder:"Your full name"    },
+                { key:"email",    label:"Email Address",  type:"email",    placeholder:"you@example.com"   },
+                { key:"password", label:"Password",       type:"password", placeholder:"Min. 8 characters" },
               ].map(f => (
                 <div key={f.key} className="auth-field">
                   <label className="auth-label">{f.label}</label>

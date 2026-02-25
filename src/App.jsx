@@ -9,6 +9,7 @@ import Login from "./pages/login";
 import Register from "./pages/register";
 import Dashboard from "./pages/Dashboard";
 import RoadmapPage from "./pages/RoadmapPage";
+import { KeepAlive } from "./hooks/Usekeepalive";
 
 const pageVariants = {
   initial: { opacity: 0, y: 12 },
@@ -55,6 +56,8 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
+      {/* Pings backend every 10 min — prevents Render free tier cold starts */}
+      <KeepAlive />
       <div style={{ background:"#080808", color:"#e8e8e8", minHeight:"100vh", fontFamily:"'IBM Plex Mono', monospace" }}>
         <Navbar />
         <AppRoutes />
