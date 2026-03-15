@@ -7,10 +7,6 @@ const instance = axios.create({
     "Content-Type": "application/json",
   },
 });
-
-// ── FIXED: Only ONE auth interceptor here. Removed the duplicate from AuthContext.
-// AuthContext was adding a second interceptor in a useEffect, causing every request
-// to have the token attached twice and triggering unnecessary re-attachment on re-renders.
 instance.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {

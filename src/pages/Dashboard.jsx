@@ -17,8 +17,26 @@ const getLevelBadge = (level = "") => {
   return { color:"var(--text-dim)", bg:"var(--input-bg)", border:"var(--border)" };
 };
 
-// ─── Delete confirmation popover ─────────────────────────────────────────────
+// ─── Shared button style factory ──────────────────────────────────────────────
+const emptyBtnBase = {
+  height: 38,
+  padding: "0 22px",
+  fontFamily: "'IBM Plex Mono', monospace",
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: "0.14em",
+  cursor: "pointer",
+  borderRadius: 2,
+  transition: "all 0.2s",
+  whiteSpace: "nowrap",
+  boxSizing: "border-box",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  lineHeight: 1,
+};
 
+// ─── Delete confirmation popover ─────────────────────────────────────────────
 function DeleteConfirm({ onConfirm, onCancel, loading }) {
   return (
     <motion.div
@@ -53,7 +71,6 @@ function DeleteConfirm({ onConfirm, onCancel, loading }) {
 }
 
 // ─── Roadmap Card ─────────────────────────────────────────────────────────────
-
 function RoadmapCard({ roadmap, index, onClick, onDelete }) {
   const badge = getLevelBadge(roadmap.level);
   const [hovered, setHovered]             = useState(false);
@@ -100,10 +117,9 @@ function RoadmapCard({ roadmap, index, onClick, onDelete }) {
         <div style={{ height: 2, borderRadius: "4px 4px 0 0", background: hovered ? "var(--gradient-accent)" : "transparent", transition: "background 0.25s" }} />
 
         <div style={{ padding: 24 }}>
-          {/* Top row: level badge + delete + arrow */}
+          {/* Top row */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {/* Level badge */}
               <span style={{
                 fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: "0.16em",
                 padding: "4px 10px", border: `1px solid ${badge.border}`, borderRadius: 2,
@@ -111,7 +127,6 @@ function RoadmapCard({ roadmap, index, onClick, onDelete }) {
               }}>
                 {(roadmap.level || "CUSTOM").toUpperCase()}
               </span>
-              {/* Years of experience badge — NEW */}
               {roadmap.yearsOfExperience && (
                 <span style={{
                   fontFamily: "'IBM Plex Mono',monospace", fontSize: 9, letterSpacing: "0.12em",
@@ -201,7 +216,6 @@ function RoadmapCard({ roadmap, index, onClick, onDelete }) {
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
-
 export default function Dashboard() {
   const [roadmaps, setRoadmaps] = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -268,12 +282,55 @@ export default function Dashboard() {
         .filter-btn:hover  { border-color: var(--accent-border); color: var(--accent); }
         .filter-btn.active { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); }
         .new-btn {
-          padding:10px 22px; background: var(--accent); color: var(--bg);
-          border:none; font-family:'IBM Plex Mono',monospace; font-size:10px;
-          font-weight:700; letter-spacing:0.14em; cursor:pointer; border-radius:2px;
-          transition:all 0.2s;
+          height: 38px;
+          padding: 0 22px;
+          background: var(--accent);
+          color: var(--bg);
+          border: none;
+          font-family:'IBM Plex Mono',monospace;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          cursor: pointer;
+          border-radius: 2px;
+          transition: all 0.2s;
+          white-space: nowrap;
+          box-sizing: border-box;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
         }
-        .new-btn:hover { background: var(--accent-bright); transform:translateY(-1px); box-shadow: 0 8px 24px var(--accent-glow); }
+        .new-btn:hover {
+          background: var(--accent-bright);
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px var(--accent-glow);
+        }
+        .outline-btn {
+          height: 38px;
+          padding: 0 22px;
+          background: transparent;
+          color: var(--accent);
+          border: 1px solid var(--accent-border);
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          cursor: pointer;
+          border-radius: 2px;
+          transition: all 0.2s;
+          white-space: nowrap;
+          box-sizing: border-box;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          line-height: 1;
+        }
+        .outline-btn:hover {
+          background: var(--accent-dim);
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px var(--accent-glow);
+        }
       `}</style>
 
       <div className="db-root">
@@ -293,7 +350,10 @@ export default function Dashboard() {
                 <span style={{ WebkitTextFillColor: "transparent", WebkitTextStroke: "1.5px var(--text-dim)" }}>JOURNEYS</span>
               </h1>
             </div>
-            <button className="new-btn" onClick={() => navigate("/generate")}>+ GENERATE NEW</button>
+            <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <button className="outline-btn" onClick={() => navigate("/mocktest")}>TAKE MOCK TEST →</button>
+              <button className="new-btn" onClick={() => navigate("/generate")}>+ GENERATE NEW</button>
+            </div>
           </div>
 
           {/* Stats */}
@@ -335,18 +395,34 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Empty */}
+          {/* ── Empty state ── */}
           {!loading && !error && roadmaps.length === 0 && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              style={{ textAlign: "center", padding: "80px 20px", border: "1px dashed var(--border)", borderRadius: 4 }}>
+              style={{
+                textAlign: "center",
+                padding: "80px 20px",
+                border: "1px dashed var(--border)",
+                borderRadius: 4,
+              }}>
               <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 64, color: "var(--accent-dim)", marginBottom: 16 }}>00</div>
-              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, letterSpacing: "0.06em", color: "var(--text-muted)", marginBottom: 12 }}>NO ROADMAPS YET</div>
-              <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 32, lineHeight: 1.7 }}>Generate your first AI career roadmap<br />and start building your future today.</div>
-              <button className="new-btn" onClick={() => navigate("/generate")}>GENERATE YOUR FIRST ROADMAP →</button>
+              <div style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: 24, letterSpacing: "0.06em", color: "var(--text-muted)", marginBottom: 12 }}>
+                NO ROADMAPS YET
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-dim)", marginBottom: 32, lineHeight: 1.7 }}>
+                Generate your first AI career roadmap<br />and start building your future today.
+              </div>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", alignItems: "center", flexWrap: "wrap" }}>
+                <button className="new-btn" onClick={() => navigate("/generate")}>
+                  GENERATE YOUR FIRST ROADMAP →
+                </button>
+                <button className="outline-btn" onClick={() => navigate("/mocktest")}>
+                  TAKE MOCK TEST →
+                </button>
+              </div>
             </motion.div>
           )}
 
-          {/* Grid */}
+          {/* ── Roadmap grid ── */}
           {!loading && roadmaps.length > 0 && (
             <>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>

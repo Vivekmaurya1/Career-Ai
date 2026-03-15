@@ -1,22 +1,22 @@
 // src/App.jsx
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback } from "react";
 
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
 
-import Navbar     from "./components/Navbar";
-import Landing    from "./pages/landing";
-import Generate   from "./pages/generate";
-import Login      from "./pages/login";
-import Register   from "./pages/register";
-import Dashboard  from "./pages/Dashboard";
-import RoadmapPage from "./pages/RoadmapPage";
-import Settings   from "./pages/Settings";
+import Navbar        from "./components/Navbar";
+import Landing       from "./pages/landing";
+import Generate      from "./pages/generate";
+import Login         from "./pages/login";
+import Register      from "./pages/register";
+import Dashboard     from "./pages/Dashboard";
+import RoadmapPage   from "./pages/RoadmapPage";
+import Settings      from "./pages/Settings";
 import { KeepAlive } from "./hooks/Usekeepalive";
 
 import { useAuth } from "./context/AuthContext";
+import MockTestPage from "./pages/MockTestPage";
 
 /* ── Page transition wrapper ─────────────────────────────────────────────── */
 const pageVariants = {
@@ -50,14 +50,15 @@ function AppRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/"           element={<PageWrapper><Landing /></PageWrapper>} />
-        <Route path="/login"      element={<PageWrapper><Login /></PageWrapper>} />
-        <Route path="/register"   element={<PageWrapper><Register /></PageWrapper>} />
-        <Route path="/generate"   element={<PrivateRoute><PageWrapper><Generate /></PageWrapper></PrivateRoute>} />
-        <Route path="/dashboard"  element={<PrivateRoute><PageWrapper><Dashboard /></PageWrapper></PrivateRoute>} />
+        <Route path="/"            element={<PageWrapper><Landing /></PageWrapper>} />
+        <Route path="/login"       element={<PageWrapper><Login /></PageWrapper>} />
+        <Route path="/register"    element={<PageWrapper><Register /></PageWrapper>} />
+        <Route path="/generate"    element={<PrivateRoute><PageWrapper><Generate /></PageWrapper></PrivateRoute>} />
+        <Route path="/dashboard"   element={<PrivateRoute><PageWrapper><Dashboard /></PageWrapper></PrivateRoute>} />
         <Route path="/roadmap/:id" element={<PrivateRoute><PageWrapper><RoadmapPage /></PageWrapper></PrivateRoute>} />
-        <Route path="/settings"   element={<PrivateRoute><PageWrapper><Settings /></PageWrapper></PrivateRoute>} />
-        <Route path="*"           element={<Navigate to="/" replace />} />
+        <Route path="/settings"    element={<PrivateRoute><PageWrapper><Settings /></PageWrapper></PrivateRoute>} />
+        <Route path="/mocktest"   element={<PrivateRoute><PageWrapper><MockTestPage /></PageWrapper></PrivateRoute>} />
+        <Route path="*"            element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   );
@@ -66,11 +67,9 @@ function AppRoutes() {
 /* ── Inner app — has access to both contexts ─────────────────────────────── */
 function InnerApp() {
   const { setThemeFromUser } = useTheme();
-  // Bridge: pass setThemeFromUser into AuthProvider so it can call it on login/refresh
   return (
     <AuthProvider onThemeChange={setThemeFromUser}>
       <KeepAlive />
-      {/* Background and text colors come from CSS vars set by data-theme on <html> */}
       <div style={{ background:"var(--bg)", color:"var(--text)", minHeight:"100vh", fontFamily:"'IBM Plex Mono', monospace" }}>
         <Navbar />
         <AppRoutes />

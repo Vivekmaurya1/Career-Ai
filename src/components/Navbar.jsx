@@ -7,72 +7,129 @@ import { motion, AnimatePresence } from "framer-motion";
 const NAV_HEIGHT = 56;
 
 export default function Navbar() {
-  const [scrolled,     setScrolled]     = useState(false);
-  const [menuOpen,     setMenuOpen]     = useState(false);
-  const [profileOpen,  setProfileOpen]  = useState(false);
-  const [mounted,      setMounted]      = useState(false);
-  const [time,         setTime]         = useState("");
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [time, setTime] = useState("");
   const profileRef = useRef(null);
-  const navigate   = useNavigate();
-  const location   = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
-  const isLanding  = location.pathname === "/";
+  const isLanding = location.pathname === "/";
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 80);
-    document.documentElement.style.setProperty("--navbar-height", `${NAV_HEIGHT}px`);
+    document.documentElement.style.setProperty(
+      "--navbar-height",
+      `${NAV_HEIGHT}px`,
+    );
 
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
 
     const tick = () => {
       const now = new Date();
-      setTime(now.toLocaleTimeString("en-US", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+      setTime(
+        now.toLocaleTimeString("en-US", {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }),
+      );
     };
     tick();
     const timer = setInterval(tick, 1000);
-    return () => { window.removeEventListener("scroll", onScroll); clearInterval(timer); };
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      clearInterval(timer);
+    };
   }, []);
 
-  useEffect(() => { setMenuOpen(false); setProfileOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    setMenuOpen(false);
+    setProfileOpen(false);
+  }, [location.pathname]);
 
   useEffect(() => {
-    const h = (e) => { if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false); };
+    const h = (e) => {
+      if (profileRef.current && !profileRef.current.contains(e.target))
+        setProfileOpen(false);
+    };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
   const landingLinks = [
-    { label: "FEATURES",     action: () => document.querySelector("#features")?.scrollIntoView({ behavior: "smooth" }) },
-    { label: "HOW IT WORKS", action: () => document.querySelector("#how")?.scrollIntoView({ behavior: "smooth" }) },
-    { label: "START",        action: () => document.querySelector("#cta")?.scrollIntoView({ behavior: "smooth" }) },
+    {
+      label: "FEATURES",
+      action: () =>
+        document
+          .querySelector("#features")
+          ?.scrollIntoView({ behavior: "smooth" }),
+    },
+    {
+      label: "HOW IT WORKS",
+      action: () =>
+        document.querySelector("#how")?.scrollIntoView({ behavior: "smooth" }),
+    },
+    {
+      label: "START",
+      action: () =>
+        document.querySelector("#cta")?.scrollIntoView({ behavior: "smooth" }),
+    },
   ];
+
   const appLinks = [
-    { label: "DASHBOARD", action: () => navigate("/dashboard"), path: "/dashboard" },
-    { label: "GENERATE",  action: () => navigate("/generate"),  path: "/generate"  },
+    {
+      label: "DASHBOARD",
+      action: () => navigate("/dashboard"),
+      path: "/dashboard",
+    },
+    {
+      label: "GENERATE",
+      action: () => navigate("/generate"),
+      path: "/generate",
+    },
+    {
+      label: "MOCK TEST",
+      action: () => navigate("/mocktest"),
+      path: "/mocktest",
+      highlight: true,
+    },
   ];
-  const links = isLanding ? landingLinks : (user ? appLinks : landingLinks);
 
-  const pathLabel = {
-    "/dashboard": "DASHBOARD",
-    "/generate":  "GENERATE",
-    "/login":     "LOGIN",
-    "/register":  "REGISTER",
-    "/settings":  "SETTINGS",
-  }[location.pathname] || (location.pathname.startsWith("/roadmap") ? "ROADMAP" : null);
+  const links = isLanding ? landingLinks : user ? appLinks : landingLinks;
 
-  const initials = user?.name?.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
-    || user?.email?.[0]?.toUpperCase() || "U";
+  const pathLabel =
+    {
+      "/dashboard": "DASHBOARD",
+      "/generate": "GENERATE",
+      "/mocktest": "MOCK TEST",
+      "/login": "LOGIN",
+      "/register": "REGISTER",
+      "/settings": "SETTINGS",
+    }[location.pathname] ||
+    (location.pathname.startsWith("/roadmap") ? "ROADMAP" : null);
+
+  const initials =
+    user?.name
+      ?.split(" ")
+      .map((w) => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) ||
+    user?.email?.[0]?.toUpperCase() ||
+    "U";
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
 
-        /* All colours now use CSS variables from index.css — theme-aware */
-
         .nb {
-          position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+          position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
           height: var(--navbar-height);
           font-family: 'IBM Plex Mono', monospace;
           transition: background 0.3s, border-color 0.3s;
@@ -124,7 +181,7 @@ export default function Navbar() {
           color: var(--muted); background: none; border: none; cursor: pointer;
           font-family: 'IBM Plex Mono', monospace;
           transition: color 0.2s, background 0.2s;
-          border-radius: 3px; position: relative; overflow: hidden;
+          border-radius: 3px; position: relative; overflow: visible ;
         }
         .nb-link::after {
           content: ''; position: absolute; bottom: 0; left: 50%; right: 50%;
@@ -134,6 +191,30 @@ export default function Navbar() {
         .nb-link:hover { color: var(--text); background: var(--accent-dim); }
         .nb-link:hover::after, .nb-link.active::after { left: 14px; right: 14px; }
         .nb-link.active { color: var(--accent); }
+
+        /* ── Mock Test special pill link ── */
+        .nb-link-mock {
+          padding: 5px 12px; font-size: 10px; letter-spacing: 0.14em;
+          color: var(--accent); background: var(--accent-dim);
+          border: 1px solid var(--accent-border);
+          cursor: pointer; font-family: 'IBM Plex Mono', monospace;
+          transition: all 0.2s; border-radius: 3px;
+          display: flex; align-items: center; gap: 6px;
+          margin-left: 4px;
+        }
+        .nb-link-mock:hover {
+          background: var(--accent); color: var(--bg);
+          box-shadow: 0 4px 16px var(--accent-glow);
+          transform: translateY(-1px);
+        }
+        .nb-link-mock.active {
+          background: var(--accent); color: var(--bg);
+        }
+        .nb-link-mock-dot {
+          width: 5px; height: 5px; border-radius: 50%;
+          background: currentColor; flex-shrink: 0;
+          animation: blink 2s infinite;
+        }
 
         /* ── Clock ── */
         .nb-clock {
@@ -173,8 +254,9 @@ export default function Navbar() {
         .nb-drop {
           position: absolute; top: calc(100% + 8px); right: 0; width: 200px;
           background: var(--surface); border: 1px solid var(--border-accent);
-          border-radius: 4px; overflow: hidden;
+          border-radius: 4px; overflow: visible;
           box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+          z-index: 9999;
         }
         .nb-drop-header {
           padding: 12px 14px; border-bottom: 1px solid var(--border);
@@ -192,6 +274,8 @@ export default function Navbar() {
         .nb-drop-item:hover { background: var(--accent-dim); color: var(--accent); }
         .nb-drop-item.danger { color: rgba(239,68,68,0.6); }
         .nb-drop-item.danger:hover { background: rgba(239,68,68,0.08); color: #ef4444; }
+        .nb-drop-item.mock-item { color: var(--accent); }
+        .nb-drop-item.mock-item:hover { background: var(--accent); color: var(--bg); }
         .nb-drop-sep { height: 1px; background: var(--border); }
 
         /* ── Hamburger ── */
@@ -223,6 +307,9 @@ export default function Navbar() {
           transition: color 0.2s;
         }
         .nb-mobile-link:hover { color: var(--accent); }
+        .nb-mobile-link.mock { color: var(--accent); font-weight: 600; }
+
+        @keyframes blink { 50% { opacity: 0; } }
 
         @media (max-width: 768px) {
           .nb-links, .nb-clock, .nb-login, .nb-profile { display: none !important; }
@@ -233,25 +320,40 @@ export default function Navbar() {
 
       <nav className={`nb${scrolled || !isLanding ? " solid" : ""}`}>
         <div className="nb-inner">
-
           {/* Logo */}
-          <div className={`nb-logo${mounted ? " on" : ""}`}
-            onClick={() => isLanding ? window.scrollTo({ top: 0, behavior: "smooth" }) : navigate("/")}>
+          <div
+            className={`nb-logo${mounted ? " on" : ""}`}
+            onClick={() =>
+              isLanding
+                ? window.scrollTo({ top: 0, behavior: "smooth" })
+                : navigate("/")
+            }
+          >
             <div className="nb-mark">
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                <path d="M6 1L11 4V8L6 11L1 8V4L6 1Z" fill="var(--bg)" strokeWidth="0"/>
+                <path
+                  d="M6 1L11 4V8L6 11L1 8V4L6 1Z"
+                  fill="var(--bg)"
+                  strokeWidth="0"
+                />
               </svg>
             </div>
-            <div className="nb-wordmark">CAREER<span>AI</span></div>
+            <div className="nb-wordmark">
+              CAREER<span>AI</span>
+            </div>
           </div>
 
           {/* Breadcrumb */}
           <AnimatePresence>
             {!isLanding && pathLabel && (
-              <motion.div className="nb-crumb"
-                initial={{ opacity:0, x:-6 }} animate={{ opacity:1, x:0 }} exit={{ opacity:0, x:-6 }}
-                transition={{ duration:0.25 }}>
-                <span style={{ opacity:0.3 }}>/</span>
+              <motion.div
+                className="nb-crumb"
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -6 }}
+                transition={{ duration: 0.25 }}
+              >
+                <span style={{ opacity: 0.3 }}>/</span>
                 <span className="nb-crumb-page">{pathLabel}</span>
               </motion.div>
             )}
@@ -259,13 +361,27 @@ export default function Navbar() {
 
           {/* Links */}
           <div className="nb-links">
-            {links.map((l) => (
-              <button key={l.label}
-                className={`nb-link${l.path && location.pathname === l.path ? " active" : ""}`}
-                onClick={l.action}>
-                {l.label}
-              </button>
-            ))}
+            {links.map((l) =>
+              l.highlight ? (
+                // Mock Test — styled as a pill/badge link
+                <button
+                  key={l.label}
+                  className={`nb-link-mock${location.pathname === l.path ? " active" : ""}`}
+                  onClick={l.action}
+                >
+                  <span className="nb-link-mock-dot" />
+                  {l.label}
+                </button>
+              ) : (
+                <button
+                  key={l.label}
+                  className={`nb-link${l.path && location.pathname === l.path ? " active" : ""}`}
+                  onClick={l.action}
+                >
+                  {l.label}
+                </button>
+              ),
+            )}
           </div>
 
           {/* Clock */}
@@ -273,44 +389,89 @@ export default function Navbar() {
 
           {/* Auth */}
           {!user ? (
-            <button className="nb-login" onClick={() => navigate("/login")}>LOGIN →</button>
+            <button className="nb-login" onClick={() => navigate("/login")}>
+              LOGIN →
+            </button>
           ) : (
-            <div ref={profileRef} style={{ position:"relative" }} className="nb-profile">
-              <div className={`nb-profile-btn${profileOpen ? " open" : ""}`}
-                onClick={() => setProfileOpen(o => !o)}>
+            <div
+              ref={profileRef}
+              style={{ position: "relative", zIndex: 9999 }}
+              className="nb-profile"
+            >
+              <div
+                className={`nb-profile-btn${profileOpen ? " open" : ""}`}
+                onClick={() => setProfileOpen((o) => !o)}
+              >
                 <div className="nb-avatar">{initials}</div>
                 <span className="nb-uname">
-                  {user.name?.split(" ")[0]?.toUpperCase() || user.email?.split("@")[0]?.toUpperCase()}
+                  {user.name?.split(" ")[0]?.toUpperCase() ||
+                    user.email?.split("@")[0]?.toUpperCase()}
                 </span>
-                <svg className="nb-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                <svg
+                  className="nb-chevron"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                >
+                  <path
+                    d="M2 3.5L5 6.5L8 3.5"
+                    stroke="currentColor"
+                    strokeWidth="1.2"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </div>
 
               <AnimatePresence>
                 {profileOpen && (
-                  <motion.div className="nb-drop"
-                    initial={{ opacity:0, y:-8, scaleY:0.92 }}
-                    animate={{ opacity:1, y:0,  scaleY:1    }}
-                    exit={{    opacity:0, y:-8, scaleY:0.92 }}
-                    transition={{ duration:0.18 }}>
+                  <motion.div
+                    className="nb-drop"
+                    initial={{ opacity: 0, y: -8, scaleY: 0.92 }}
+                    animate={{ opacity: 1, y: 0, scaleY: 1 }}
+                    exit={{ opacity: 0, y: -8, scaleY: 0.92 }}
+                    transition={{ duration: 0.18 }}
+                  >
                     <div className="nb-drop-header">
                       <div className="nb-drop-name">{user.name || "User"}</div>
                       <div className="nb-drop-email">{user.email}</div>
                     </div>
                     {[
-                      { p:"/dashboard", l:"DASHBOARD" },
-                      { p:"/generate",  l:"GENERATE"  },
-                      { p:"/settings",  l:"SETTINGS"  },
-                    ].map(({ p, l }) => (
-                      <button key={p} className="nb-drop-item"
-                        onClick={() => { navigate(p); setProfileOpen(false); }}>
-                        <span style={{ color: location.pathname === p ? "var(--accent)" : undefined }}>▸</span> {l}
+                      { p: "/dashboard", l: "DASHBOARD" },
+                      { p: "/generate", l: "GENERATE" },
+                      { p: "/mocktest", l: "MOCK TEST", mock: true },
+                      { p: "/settings", l: "SETTINGS" },
+                    ].map(({ p, l, mock }) => (
+                      <button
+                        key={p}
+                        className={`nb-drop-item${mock ? " mock-item" : ""}`}
+                        onClick={() => {
+                          navigate(p);
+                          setProfileOpen(false);
+                        }}
+                      >
+                        <span
+                          style={{
+                            color:
+                              location.pathname === p
+                                ? "currentColor"
+                                : undefined,
+                          }}
+                        >
+                          {mock ? "◎" : "▸"}
+                        </span>
+                        {l}
                       </button>
                     ))}
                     <div className="nb-drop-sep" />
-                    <button className="nb-drop-item danger"
-                      onClick={() => { logout(); navigate("/"); setProfileOpen(false); }}>
+                    <button
+                      className="nb-drop-item danger"
+                      onClick={() => {
+                        logout();
+                        navigate("/");
+                        setProfileOpen(false);
+                      }}
+                    >
                       ⏻ SIGN OUT
                     </button>
                   </motion.div>
@@ -320,29 +481,62 @@ export default function Navbar() {
           )}
 
           {/* Hamburger */}
-          <div className={`nb-ham${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen(o => !o)}>
-            <span /><span /><span />
+          <div
+            className={`nb-ham${menuOpen ? " open" : ""}`}
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            <span />
+            <span />
+            <span />
           </div>
         </div>
 
         {/* Mobile menu */}
         <AnimatePresence>
           {menuOpen && (
-            <motion.div className="nb-mobile"
-              initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }}
-              transition={{ duration:0.2 }}>
-              {links.map(l => (
-                <button key={l.label} className="nb-mobile-link"
-                  onClick={() => { l.action(); setMenuOpen(false); }}>
-                  {l.label} <span style={{ color:"var(--accent)" }}>→</span>
+            <motion.div
+              className="nb-mobile"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+            >
+              {links.map((l) => (
+                <button
+                  key={l.label}
+                  className={`nb-mobile-link${l.highlight ? " mock" : ""}`}
+                  onClick={() => {
+                    l.action();
+                    setMenuOpen(false);
+                  }}
+                >
+                  {l.label} <span style={{ color: "var(--accent)" }}>→</span>
                 </button>
               ))}
-              {!user
-                ? <button className="nb-mobile-link" style={{ color:"var(--accent)" }}
-                    onClick={() => { navigate("/login"); setMenuOpen(false); }}>LOGIN →</button>
-                : <button className="nb-mobile-link" style={{ color:"#ef4444" }}
-                    onClick={() => { logout(); navigate("/"); setMenuOpen(false); }}>SIGN OUT</button>
-              }
+              {!user ? (
+                <button
+                  className="nb-mobile-link"
+                  style={{ color: "var(--accent)" }}
+                  onClick={() => {
+                    navigate("/login");
+                    setMenuOpen(false);
+                  }}
+                >
+                  LOGIN →
+                </button>
+              ) : (
+                <button
+                  className="nb-mobile-link"
+                  style={{ color: "#ef4444" }}
+                  onClick={() => {
+                    logout();
+                    navigate("/");
+                    setMenuOpen(false);
+                  }}
+                >
+                  SIGN OUT
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
