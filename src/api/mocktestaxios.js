@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const mockAxios = axios.create({
-  baseURL: "https://roadmapiq.vercel.app/",
+  baseURL: "https://career-planner-agent-mocktest.onrender.com/",
   headers: { "Content-Type": "application/json" },
   timeout: 120000,
 });
