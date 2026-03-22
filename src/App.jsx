@@ -10,7 +10,7 @@ import Landing       from "./pages/landing";
 import Generate      from "./pages/generate";
 import Login         from "./pages/login";
 import Register      from "./pages/register";
-import Dashboard     from "./pages/dashboard";
+import Dashboard     from "./pages/Dashboard";
 import RoadmapPage   from "./pages/roadmapPage";
 import Settings      from "./pages/settings";
 import { KeepAlive } from "./hooks/useKeepAlive";
