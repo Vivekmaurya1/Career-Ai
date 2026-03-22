@@ -4,7 +4,7 @@ import Hero from "../components/Hero";
 import Feature from "../components/feature";
 import HowItWorks from "../components/howItworks";
 import CTA from "../components/CTA";
-import Footer from "../components/Footer";
+import Footer from "../components/footer";
 
 const GLOBAL = `
   @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
