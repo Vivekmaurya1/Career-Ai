@@ -13,7 +13,7 @@ import Register      from "./pages/register";
 import Dashboard     from "./pages/Dashboard";
 import RoadmapPage   from "./pages/RoadmapPage";
 import Settings      from "./pages/Settings";
-import { KeepAlive } from "./hooks/useKeepAlive";
+import { KeepAlive } from "./hooks/UseKeepAlive";
 
 import { useAuth } from "./context/AuthContext";
 import MockTestPage from "./pages/MockTestPage";
