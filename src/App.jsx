@@ -6,7 +6,7 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
 
 import Navbar        from "./components/Navbar";
-import Landing       from "./pages/Landing";
+import Landing       from "./pages/landing";
 import Generate      from "./pages/Generate";
 import Login         from "./pages/Login";
 import Register      from "./pages/Register";
