@@ -1,35 +1,35 @@
-// src/context/AuthContext.jsx
+// context/AuthContext.jsx
 import { createContext, useContext, useState, useEffect } from "react";
 import axios from "../api/axios";
 
 const AuthContext = createContext();
 
-// NOTE: ThemeContext is NOT imported here to avoid a circular dependency.
-// Instead, AuthContext accepts an optional `onThemeChange` callback that
-// App.jsx passes down. This keeps the two contexts fully decoupled.
-
-export const AuthProvider = ({ children, onThemeChange }) => {
+/**
+ * AuthProvider wraps the entire app.
+ *
+ * onThemeChange — optional callback passed from App.jsx.
+ * It should be ThemeContext.setThemeFromUser so the two contexts
+ * stay fully decoupled (no circular import).
+ */
+export function AuthProvider({ children, onThemeChange }) {
   const [user,    setUser]    = useState(null);
   const [loading, setLoading] = useState(true);
 
-  /* ── Apply theme whenever user changes ───────────────────────────────── */
-  // onThemeChange is ThemeContext.setThemeFromUser, passed from App.jsx
+  // Apply theme whenever the user object changes (login, refresh)
   useEffect(() => {
     if (user?.theme && onThemeChange) {
       onThemeChange(user.theme);
     }
   }, [user?.theme, onThemeChange]);
 
-  /* ── Restore session on page refresh ────────────────────────────────── */
+  // Restore session on page refresh
   useEffect(() => {
-    const restoreUser = async () => {
+    const restore = async () => {
       const token = localStorage.getItem("token");
       if (!token) { setLoading(false); return; }
-
       try {
         const { data } = await axios.get("/api/auth/me");
         setUser(data);
-        // theme applied via the useEffect above when user state updates
       } catch {
         localStorage.removeItem("token");
         setUser(null);
@@ -37,41 +37,33 @@ export const AuthProvider = ({ children, onThemeChange }) => {
         setLoading(false);
       }
     };
-    restoreUser();
+    restore();
   }, []);
 
-  /* ── Register ────────────────────────────────────────────────────────── */
   const register = async (name, email, password) => {
     try {
       await axios.post("/api/auth/register", { name, email, password });
       return { success: true };
-    } catch (error) {
-      return { success: false, message: error.response?.data?.message || "Registration failed" };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || "Registration failed" };
     }
   };
 
-  /* ── Login ───────────────────────────────────────────────────────────── */
   const login = async (email, password) => {
     try {
       const { data: tokenData } = await axios.post("/api/auth/login", { email, password });
       localStorage.setItem("token", tokenData.token);
-
-      // Fetch full profile (includes theme)
       const { data: me } = await axios.get("/api/auth/me");
       setUser(me);
-      // theme applied via useEffect above
-
       return { success: true };
-    } catch (error) {
-      return { success: false, message: error.response?.data?.message || "Invalid email or password" };
+    } catch (err) {
+      return { success: false, message: err.response?.data?.message || "Invalid email or password" };
     }
   };
 
-  /* ── Logout ──────────────────────────────────────────────────────────── */
   const logout = () => {
     localStorage.removeItem("token");
     setUser(null);
-    window.location.href = "/";
   };
 
   return (
@@ -79,6 +71,6 @@ export const AuthProvider = ({ children, onThemeChange }) => {
       {!loading && children}
     </AuthContext.Provider>
   );
-};
+}
 
 export const useAuth = () => useContext(AuthContext);

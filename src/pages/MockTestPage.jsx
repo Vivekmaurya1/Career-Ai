@@ -736,8 +736,28 @@ export default function MockTestPage() {
   const formValid = role.trim() && experience;
 
   return (
-    <div style={{ minHeight: "100vh", background: "var(--bg)", color: "var(--text)", fontFamily: "IBM Plex Mono, monospace", paddingTop: 72 }}>
-      <div style={{ maxWidth: 780, margin: "0 auto", padding: "40px 24px 120px" }}>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+        .mockx-root {
+          --surface: rgba(255,255,255,0.04);
+          --muted: var(--text-dim);
+          min-height: 100vh;
+          background:
+            radial-gradient(circle at top left, var(--accent-dim), transparent 24%),
+            linear-gradient(180deg, var(--bg) 0%, var(--bg-surface) 100%);
+          color: var(--text);
+          font-family: 'Manrope', sans-serif;
+          padding-top: calc(var(--navbar-height, 56px) + 16px);
+        }
+        .mockx-shell {
+          max-width: 880px;
+          margin: 0 auto;
+          padding: 40px 24px 120px;
+        }
+      `}</style>
+    <div className="mockx-root">
+      <div className="mockx-shell">
 
         {/* Header */}
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 36 }}>
@@ -997,5 +1017,6 @@ export default function MockTestPage() {
         </AnimatePresence>
       </div>
     </div>
+    </>
   );
 }

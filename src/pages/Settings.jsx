@@ -6,9 +6,6 @@ import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import axios from "../api/axios";
 
-// ─── Theme definitions (mirrors ThemeContext.THEMES) ────────────────────────
-// We pull them straight from the context so there's a single source of truth.
-
 // ─── Small reusable section wrapper ─────────────────────────────────────────
 function Section({ label, index, children }) {
   return (
@@ -25,7 +22,6 @@ function Section({ label, index, children }) {
         background: "var(--bg-surface)",
         transition: "border-color 0.3s",
       }}>
-        {/* Section header stripe */}
         <div style={{
           padding: "14px 24px",
           borderBottom: "1px solid var(--border)",
@@ -68,7 +64,7 @@ function Toast({ message, type, visible }) {
             bottom: 32,
             left: "50%",
             transform: "translateX(-50%)",
-            zIndex: 999,
+            zIndex: 9999,
             padding: "12px 24px",
             background: type === "error" ? "var(--danger-bg)" : "rgba(34,197,94,0.12)",
             border: `1px solid ${type === "error" ? "var(--danger-border)" : "var(--success-border)"}`,
@@ -101,112 +97,154 @@ function ThemeCard({ theme, isActive, onSelect, isSaving }) {
       whileTap={{ scale: 0.97 }}
       style={{
         background: theme.bg,
-        border: `1px solid ${isActive ? theme.accent : "rgba(255,255,255,0.06)"}`,
-        borderRadius: 4,
+        border: `1px solid ${isActive ? theme.accent : "rgba(255,255,255,0.07)"}`,
+        borderRadius: 16,
         padding: 0,
         cursor: isSaving ? "not-allowed" : "pointer",
         position: "relative",
         overflow: "hidden",
         transition: "border-color 0.2s, box-shadow 0.25s, transform 0.2s",
         boxShadow: isActive
-          ? `0 0 0 1px ${theme.accent}, 0 8px 32px ${theme.accent}22`
+          ? `0 0 0 1px ${theme.accent}, 0 8px 32px ${theme.accent}33`
           : hovered
-          ? `0 8px 24px rgba(0,0,0,0.4)`
+          ? `0 8px 28px rgba(0,0,0,0.5)`
           : "none",
-        transform: hovered && !isActive ? "translateY(-2px)" : "translateY(0)",
+        transform: hovered && !isActive ? "translateY(-3px)" : "translateY(0)",
         opacity: isSaving ? 0.7 : 1,
       }}
     >
+      {/* Animated badge */}
+      {theme.animated && (
+        <div style={{
+          position: "absolute",
+          top: 8, right: 8,
+          padding: "2px 7px",
+          borderRadius: 999,
+          background: `${theme.accent}20`,
+          border: `1px solid ${theme.accent}45`,
+          fontFamily: "'IBM Plex Mono', monospace",
+          fontSize: 7,
+          letterSpacing: "0.12em",
+          color: theme.accent,
+          zIndex: 2,
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+        }}>
+          <span style={{
+            width: 4, height: 4, borderRadius: "50%",
+            background: theme.accent,
+            display: "inline-block",
+            animation: "theme-pulse 1.8s ease-in-out infinite",
+            boxShadow: `0 0 4px ${theme.accent}`,
+          }}/>
+          LIVE
+        </div>
+      )}
+
       {/* Mini UI preview */}
-      <div style={{ padding: "14px 14px 10px" }}>
+      <div style={{ padding: "18px 16px 12px" }}>
         {/* Fake navbar */}
         <div style={{
-          height: 6,
-          borderRadius: 1,
-          background: `${theme.accent}22`,
-          marginBottom: 8,
-          display: "flex",
-          alignItems: "center",
-          gap: 3,
-          padding: "0 4px",
+          height: 7, borderRadius: 3,
+          background: `${theme.accent}18`,
+          marginBottom: 10,
+          display: "flex", alignItems: "center",
+          gap: 4, padding: "0 5px",
         }}>
-          {[1,0.6,0.3].map((o,i) => (
-            <div key={i} style={{ width: 12, height: 3, borderRadius: 1, background: theme.accent, opacity: o }} />
+          {[1, 0.55, 0.28].map((o, i) => (
+            <div key={i} style={{
+              width: i === 0 ? 16 : 10,
+              height: 3, borderRadius: 2,
+              background: theme.accent, opacity: o,
+            }} />
+          ))}
+          <div style={{ flex: 1 }} />
+          <div style={{ width: 20, height: 4, borderRadius: 999, background: theme.accent, opacity: 0.7 }} />
+        </div>
+
+        {/* Fake content */}
+        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
+          {[0.55, 0.3].map((o, i) => (
+            <div key={i} style={{
+              flex: i === 0 ? 2 : 1, height: 28, borderRadius: 6,
+              background: `${theme.accent}${i === 0 ? "14" : "09"}`,
+              border: `1px solid ${theme.accent}${i === 0 ? "28" : "18"}`,
+            }} />
           ))}
         </div>
-        {/* Fake content lines */}
-        {[0.7, 0.4, 0.55, 0.3].map((o, i) => (
+        {[0.65, 0.38, 0.5, 0.25].map((o, i) => (
           <div key={i} style={{
-            height: 4,
-            borderRadius: 1,
-            background: theme.accent,
-            opacity: o * 0.35,
+            height: 3, borderRadius: 2,
+            background: theme.accent, opacity: o * 0.5,
             marginBottom: 5,
-            width: i === 1 ? "60%" : i === 3 ? "75%" : "100%",
+            width: i === 1 ? "58%" : i === 3 ? "72%" : "100%",
           }} />
         ))}
-        {/* Fake button */}
+
+        {/* Fake CTA */}
         <div style={{
-          height: 14,
-          borderRadius: 2,
-          background: theme.accent,
-          opacity: 0.9,
-          marginTop: 8,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          height: 16, borderRadius: 999,
+          background: theme.accent, opacity: 0.88,
+          marginTop: 10,
+          display: "flex", alignItems: "center", justifyContent: "center",
         }}>
-          <div style={{ width: 24, height: 3, borderRadius: 1, background: theme.bg, opacity: 0.7 }} />
+          <div style={{ width: 28, height: 3, borderRadius: 2, background: theme.bg, opacity: 0.6 }} />
         </div>
       </div>
 
-      {/* Label row */}
+      {/* Label + description row */}
       <div style={{
-        padding: "8px 14px 10px",
+        padding: "10px 16px 12px",
         borderTop: `1px solid ${theme.accent}18`,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 8,
+        textAlign: "left",
       }}>
-        <span style={{
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: 10,
-          letterSpacing: "0.08em",
-          color: theme.accent,
-          fontWeight: 600,
+        <div style={{
+          display: "flex", alignItems: "center",
+          justifyContent: "space-between", gap: 8,
+          marginBottom: theme.description ? 5 : 0,
         }}>
-          {theme.label.toUpperCase()}
-        </span>
-        {isActive && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 400, damping: 20 }}
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: "50%",
-              background: theme.accent,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-              <path d="M1.5 4L3.5 6L6.5 2" stroke={theme.bg} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </motion.div>
+          <span style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 10, letterSpacing: "0.1em",
+            color: theme.accent, fontWeight: 600,
+          }}>
+            {theme.label.toUpperCase()}
+          </span>
+          {isActive && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              style={{
+                width: 16, height: 16, borderRadius: "50%",
+                background: theme.accent,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                <path d="M1.5 4L3.5 6L6.5 2" stroke={theme.bg} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </motion.div>
+          )}
+        </div>
+        {theme.description && (
+          <div style={{
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: 8, letterSpacing: "0.06em",
+            color: `${theme.accent}88`,
+            lineHeight: 1.4,
+          }}>
+            {theme.description}
+          </div>
         )}
       </div>
 
       {/* Active glow bar */}
       {isActive && (
         <div style={{
-          position: "absolute",
-          top: 0, left: 0, right: 0,
-          height: 2,
+          position: "absolute", top: 0, left: 0, right: 0, height: 2,
           background: `linear-gradient(90deg, transparent, ${theme.accent}, transparent)`,
         }} />
       )}
@@ -220,24 +258,18 @@ export default function Settings() {
   const { user, setUser, logout } = useAuth();
   const { theme: activeTheme, saveTheme, THEMES } = useTheme();
 
-  // Profile form
-  const [profile, setProfile] = useState({ name: user?.name || "", email: user?.email || "" });
+  const staticThemes  = THEMES.filter((t) => !t.animated);
+  const animatedThemes = THEMES.filter((t) => t.animated);
+
+  const [profile, setProfile]         = useState({ name: user?.name || "", email: user?.email || "" });
   const [profileLoading, setProfileLoading] = useState(false);
-
-  // Password form
-  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
-  const [pwLoading, setPwLoading] = useState(false);
-  const [pwVisible, setPwVisible] = useState({ current: false, next: false, confirm: false });
-
-  // Theme saving
+  const [pwForm, setPwForm]           = useState({ current: "", next: "", confirm: "" });
+  const [pwLoading, setPwLoading]     = useState(false);
+  const [pwVisible, setPwVisible]     = useState({ current: false, next: false, confirm: false });
   const [themeSaving, setThemeSaving] = useState(false);
-
-  // Danger zone
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
-
-  // Toast
-  const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
+  const [toast, setToast]             = useState({ visible: false, message: "", type: "success" });
   const toastTimer = useRef(null);
 
   const showToast = (message, type = "success") => {
@@ -246,12 +278,10 @@ export default function Settings() {
     toastTimer.current = setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
   };
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
-
   const handleThemeSelect = async (id) => {
     setThemeSaving(true);
     try {
-      await saveTheme(id); // optimistic + DB save
+      await saveTheme(id);
       showToast(`Theme switched to ${THEMES.find(t => t.id === id)?.label}`);
     } catch {
       showToast("Failed to save theme", "error");
@@ -315,16 +345,20 @@ export default function Settings() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=Bebas+Neue&display=swap');
-        @keyframes spin  { to { transform: rotate(360deg); } }
-        @keyframes blink { 50% { opacity: 0; } }
+        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+        @keyframes spin        { to { transform: rotate(360deg); } }
+        @keyframes blink       { 50% { opacity: 0; } }
+        @keyframes theme-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); } }
+
         .st-root {
           min-height: 100vh;
-          background: var(--bg);
-          font-family: 'IBM Plex Mono', monospace;
-          padding: calc(var(--navbar-height, 56px) + 48px) 40px 120px;
+          background:
+            radial-gradient(circle at top left, var(--accent-dim), transparent 28%),
+            linear-gradient(180deg, var(--bg) 0%, var(--bg-surface) 100%);
+          font-family: 'Manrope', sans-serif;
+          padding: calc(var(--navbar-height, 56px) + 48px) 28px 120px;
           color: var(--text);
-          transition: background 0.4s ease, color 0.3s ease;
+          transition: background 0.5s ease, color 0.3s ease;
           position: relative;
         }
         .st-grid {
@@ -335,13 +369,14 @@ export default function Settings() {
             linear-gradient(var(--grid-color) 1px, transparent 1px),
             linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
           background-size: 80px 80px;
+          transition: opacity 0.5s ease;
         }
         .st-input {
-          width: 100%; padding: 11px 14px;
-          background: var(--input-bg);
+          width: 100%; padding: 14px 16px;
+          background: rgba(255,255,255,0.04);
           border: 1px solid var(--input-border);
-          border-radius: 2px; color: var(--text);
-          font-family: 'IBM Plex Mono', monospace; font-size: 13px; outline: none;
+          border-radius: 18px; color: var(--text);
+          font-family: 'Manrope', sans-serif; font-size: 14px; outline: none;
           transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
         }
         .st-input:focus {
@@ -351,31 +386,31 @@ export default function Settings() {
         }
         .st-input::placeholder { color: var(--text-faint); }
         .st-label {
-          display: block; font-size: 9px; letter-spacing: 0.18em;
+          display: block; font-size: 10px; letter-spacing: 0.12em; font-weight: 700;
           color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase;
         }
         .st-btn {
-          padding: 11px 28px;
-          background: var(--accent); color: var(--bg);
-          font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-          letter-spacing: 0.14em; border: none; cursor: pointer; border-radius: 2px;
+          min-height: 44px; padding: 0 24px;
+          background: linear-gradient(135deg, var(--accent), var(--success)); color: #08111d;
+          font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 800;
+          letter-spacing: 0.08em; border: none; cursor: pointer; border-radius: 999px;
           transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
         }
-        .st-btn:hover:not(:disabled) { background: var(--accent-bright); transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+        .st-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
         .st-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .st-btn-ghost {
-          padding: 11px 28px;
-          background: transparent; color: var(--text-muted);
-          font-family: 'IBM Plex Mono', monospace; font-size: 10px;
-          letter-spacing: 0.14em; border: 1px solid var(--border); cursor: pointer; border-radius: 2px;
+          min-height: 44px; padding: 0 24px;
+          background: rgba(255,255,255,0.03); color: var(--text-muted);
+          font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 800;
+          letter-spacing: 0.08em; border: 1px solid var(--border); cursor: pointer; border-radius: 999px;
           transition: all 0.2s;
         }
         .st-btn-ghost:hover { border-color: var(--accent-border); color: var(--accent); }
         .st-btn-danger {
-          padding: 11px 28px;
+          min-height: 44px; padding: 0 24px;
           background: var(--danger-bg); color: var(--danger);
-          font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 700;
-          letter-spacing: 0.14em; border: 1px solid var(--danger-border); cursor: pointer; border-radius: 2px;
+          font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 800;
+          letter-spacing: 0.08em; border: 1px solid var(--danger-border); cursor: pointer; border-radius: 999px;
           transition: all 0.2s;
         }
         .st-btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.18); box-shadow: 0 4px 16px rgba(239,68,68,0.2); }
@@ -387,19 +422,37 @@ export default function Settings() {
           padding: 4px; display: flex; align-items: center; transition: color 0.15s;
         }
         .st-pw-toggle:hover { color: var(--text-muted); }
-        .st-divider { height: 1px; background: var(--border); margin: 20px 0; }
         .st-field { margin-bottom: 18px; }
         .theme-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-          gap: 8px;
+          grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+          gap: 14px;
         }
+        .theme-section-label {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 8px;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--text-faint);
+          margin-bottom: 12px;
+          margin-top: 20px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .theme-section-label::after {
+          content: '';
+          flex: 1;
+          height: 1px;
+          background: var(--border);
+        }
+        .theme-section-label:first-child { margin-top: 0; }
       `}</style>
 
       <div className="st-root">
         <div className="st-grid" />
 
-        <div style={{ maxWidth: 760, margin: "0 auto", position: "relative", zIndex: 1 }}>
+        <div style={{ maxWidth: 800, margin: "0 auto", position: "relative", zIndex: 1 }}>
 
           {/* ── Page header ── */}
           <motion.div
@@ -417,10 +470,8 @@ export default function Settings() {
               <span style={{ WebkitTextFillColor: "transparent", WebkitTextStroke: "1.5px var(--text-dim)" }}>& PROFILE</span>
             </h1>
 
-            {/* User meta */}
             {user && (
-              <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 16, padding: "14px 20px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--bg-surface)" }}>
-                {/* Avatar */}
+              <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 16, padding: "14px 20px", border: "1px solid var(--border)", borderRadius: 16, background: "var(--bg-surface)" }}>
                 <div style={{
                   width: 40, height: 40, borderRadius: "50%",
                   background: "var(--accent-dim)",
@@ -448,65 +499,56 @@ export default function Settings() {
 
           {/* ── 01 — APPEARANCE ── */}
           <Section label="01 · Appearance" index={0}>
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 20 }}>
-                Choose a color theme. Changes apply instantly and are saved to your account.
-              </div>
-
-              <div className="theme-grid">
-                {THEMES.map(t => (
-                  <ThemeCard
-                    key={t.id}
-                    theme={t}
-                    isActive={activeTheme === t.id}
-                    onSelect={handleThemeSelect}
-                    isSaving={themeSaving}
-                  />
-                ))}
-              </div>
-
-              {themeSaving && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.1em" }}>
-                  <div className="st-spin" />
-                  SAVING THEME...
-                </div>
-              )}
+            <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 20 }}>
+              Choose a color theme. Changes apply instantly across the entire app.
             </div>
+
+            {/* Static themes */}
+            <div className="theme-section-label">Static themes</div>
+            <div className="theme-grid">
+              {staticThemes.map(t => (
+                <ThemeCard key={t.id} theme={t} isActive={activeTheme === t.id} onSelect={handleThemeSelect} isSaving={themeSaving} />
+              ))}
+            </div>
+
+            {/* Animated themes */}
+            <div className="theme-section-label">
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent)", animation: "theme-pulse 1.8s ease-in-out infinite" }}/>
+                Animated themes
+              </span>
+            </div>
+            <div className="theme-grid">
+              {animatedThemes.map(t => (
+                <ThemeCard key={t.id} theme={t} isActive={activeTheme === t.id} onSelect={handleThemeSelect} isSaving={themeSaving} />
+              ))}
+            </div>
+
+            {themeSaving && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.1em" }}>
+                <div className="st-spin" />
+                APPLYING THEME...
+              </div>
+            )}
           </Section>
 
           {/* ── 02 — PROFILE ── */}
           <Section label="02 · Profile" index={1}>
             <form onSubmit={handleProfileSave}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 0 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                 <div className="st-field">
                   <label className="st-label">Display Name</label>
-                  <input
-                    className="st-input"
-                    type="text"
-                    placeholder="Your name"
-                    value={profile.name}
-                    onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
-                  />
+                  <input className="st-input" type="text" placeholder="Your name"
+                    value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} />
                 </div>
                 <div className="st-field">
                   <label className="st-label">Email Address</label>
-                  <input
-                    className="st-input"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={profile.email}
-                    onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
-                  />
+                  <input className="st-input" type="email" placeholder="you@example.com"
+                    value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} />
                 </div>
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                <button
-                  type="button"
-                  className="st-btn-ghost"
-                  onClick={() => setProfile({ name: user?.name || "", email: user?.email || "" })}
-                >
-                  RESET
-                </button>
+                <button type="button" className="st-btn-ghost" onClick={() => setProfile({ name: user?.name || "", email: user?.email || "" })}>RESET</button>
                 <button type="submit" className="st-btn" disabled={profileLoading}>
                   {profileLoading ? <><span className="st-spin" /> SAVING...</> : "SAVE PROFILE"}
                 </button>
@@ -518,26 +560,20 @@ export default function Settings() {
           <Section label="03 · Password" index={2}>
             <form onSubmit={handlePasswordChange}>
               {[
-                { key: "current", label: "Current Password",  placeholder: "Your current password" },
-                { key: "next",    label: "New Password",      placeholder: "Min. 8 characters" },
-                { key: "confirm", label: "Confirm New Password", placeholder: "Repeat new password" },
+                { key: "current", label: "Current Password",      placeholder: "Your current password" },
+                { key: "next",    label: "New Password",           placeholder: "Min. 8 characters" },
+                { key: "confirm", label: "Confirm New Password",   placeholder: "Repeat new password" },
               ].map(f => (
                 <div key={f.key} className="st-field" style={{ position: "relative" }}>
                   <label className="st-label">{f.label}</label>
-                  <input
-                    className="st-input"
+                  <input className="st-input"
                     type={pwVisible[f.key] ? "text" : "password"}
                     placeholder={f.placeholder}
                     value={pwForm[f.key]}
                     onChange={e => setPwForm(p => ({ ...p, [f.key]: e.target.value }))}
                     style={{ paddingRight: 40 }}
                   />
-                  <button
-                    type="button"
-                    className="st-pw-toggle"
-                    onClick={() => setPwVisible(v => ({ ...v, [f.key]: !v[f.key] }))}
-                    tabIndex={-1}
-                  >
+                  <button type="button" className="st-pw-toggle" onClick={() => setPwVisible(v => ({ ...v, [f.key]: !v[f.key] }))} tabIndex={-1}>
                     {pwVisible[f.key]
                       ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
                       : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -564,50 +600,27 @@ export default function Settings() {
           </Section>
 
           {/* ── 04 — DANGER ZONE ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.32, duration: 0.4 }}
-          >
-            <div style={{
-              border: "1px solid var(--danger-border)",
-              borderRadius: 4,
-              overflow: "hidden",
-              background: "var(--bg-surface)",
-            }}>
-              <div style={{
-                padding: "14px 24px",
-                borderBottom: "1px solid var(--danger-border)",
-                background: "var(--danger-bg)",
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-              }}>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32, duration: 0.4 }}>
+            <div style={{ border: "1px solid var(--danger-border)", borderRadius: 16, overflow: "hidden", background: "var(--bg-surface)" }}>
+              <div style={{ padding: "14px 24px", borderBottom: "1px solid var(--danger-border)", background: "var(--danger-bg)", display: "flex", alignItems: "center", gap: 12 }}>
                 <div style={{ width: 2, height: 16, background: "var(--danger)", borderRadius: 1 }} />
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, letterSpacing: "0.2em", color: "var(--danger)", textTransform: "uppercase" }}>
-                  04 · Danger Zone
-                </span>
+                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, letterSpacing: "0.2em", color: "var(--danger)", textTransform: "uppercase" }}>04 · Danger Zone</span>
               </div>
               <div style={{ padding: 24 }}>
                 <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 20 }}>
-                  Permanently delete your account and all associated roadmaps. <span style={{ color: "var(--danger)" }}>This action cannot be undone.</span>
+                  Permanently delete your account and all associated roadmaps.{" "}
+                  <span style={{ color: "var(--danger)" }}>This action cannot be undone.</span>
                 </div>
                 <div className="st-field">
                   <label className="st-label" style={{ color: "rgba(239,68,68,0.5)" }}>
                     Type <span style={{ color: "var(--danger)", fontWeight: 700 }}>DELETE</span> to confirm
                   </label>
-                  <input
-                    className="st-input"
-                    type="text"
-                    placeholder="DELETE"
-                    value={deleteConfirm}
-                    onChange={e => setDeleteConfirm(e.target.value)}
+                  <input className="st-input" type="text" placeholder="DELETE"
+                    value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
                     style={{ borderColor: deleteConfirm === "DELETE" ? "var(--danger-border)" : undefined }}
                   />
                 </div>
-                <button
-                  type="button"
-                  className="st-btn-danger"
+                <button type="button" className="st-btn-danger"
                   disabled={deleteConfirm !== "DELETE" || deleteLoading}
                   onClick={handleDeleteAccount}
                 >
@@ -618,12 +631,8 @@ export default function Settings() {
           </motion.div>
 
           {/* ── Back link ── */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            style={{ marginTop: 32, display: "flex", gap: 8 }}
-          >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+            style={{ marginTop: 32, display: "flex", gap: 8 }}>
             <button className="st-btn-ghost" style={{ fontSize: 9 }} onClick={() => navigate(-1)}>← BACK</button>
             <button className="st-btn-ghost" style={{ fontSize: 9 }} onClick={() => navigate("/dashboard")}>→ DASHBOARD</button>
           </motion.div>

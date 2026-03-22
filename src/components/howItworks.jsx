@@ -1,141 +1,158 @@
-// src/components/HowItWorks.jsx
 import { motion } from "framer-motion";
 
-const STEPS = [
+const roadmapSteps = [
   {
-    num: "01", icon: "🎯", title: "Define Your Goal",
-    desc: "Enter your target role and experience level. The more specific, the more tailored your roadmap.",
-    detail: ["Choose your domain", "Set experience level", "Specify time available"],
+    number: "1",
+    title: "Foundation sprint",
+    subtitle: "Core web, tooling, and problem-solving mapped to your current level.",
+    status: "Week 1-2",
   },
   {
-    num: "02", icon: "🤖", title: "AI Builds Your Plan",
-    desc: "Our model analyzes thousands of career paths to construct a phase-by-phase learning roadmap just for you.",
-    detail: ["Phases & milestones", "Topic ordering", "Time estimates"],
+    number: "2",
+    title: "Role-specific depth",
+    subtitle: "Frontend systems, API thinking, and real project milestones tailored for your target role.",
+    status: "Week 3-7",
   },
   {
-    num: "03", icon: "📈", title: "Learn & Ship",
-    desc: "Follow your interactive plan, check off topics, and unlock real projects that prove your skills.",
-    detail: ["Track daily progress", "Build real projects", "Get job-ready fast"],
+    number: "3",
+    title: "Interview and shipping mode",
+    subtitle: "Revision loops, mock rounds, and polished deliverables that make you look market-ready.",
+    status: "Week 8-10",
   },
 ];
 
-const ACCENT_COLORS = [
-  { line: "rgba(139,92,246,0.5)", bg: "rgba(109,40,217,0.12)", border: "rgba(139,92,246,0.2)", dot: "#a78bfa" },
-  { line: "rgba(96,165,250,0.5)",  bg: "rgba(37,99,235,0.12)",  border: "rgba(96,165,250,0.2)",  dot: "#60a5fa" },
-  { line: "rgba(52,211,153,0.5)",  bg: "rgba(5,150,105,0.12)",  border: "rgba(52,211,153,0.2)",  dot: "#34d399" },
-];
+function SectionIntro({ eyebrow, title, highlight, copy }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.35 }}
+      transition={{ duration: 0.55 }}
+      style={{ maxWidth: 740, marginBottom: 34 }}
+    >
+      <div className="landing-eyebrow">{eyebrow}</div>
+      <h2
+        style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          fontSize: "clamp(2.4rem, 5vw, 4rem)",
+          lineHeight: 1,
+          letterSpacing: "-0.05em",
+          marginTop: 22,
+        }}
+      >
+        {title} <span className="landing-heading-gradient">{highlight}</span>
+      </h2>
+      <p className="landing-copy" style={{ marginTop: 18, maxWidth: 620 }}>
+        {copy}
+      </p>
+    </motion.div>
+  );
+}
 
 export default function HowItWorks() {
   return (
-    <section id="how" style={{ padding: "120px 32px", background: "rgba(0,0,0,0.25)", position: "relative", overflow: "hidden" }}>
-      <style>{`
-        .step-card {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 22px;
-          padding: 36px 32px;
-          position: relative;
-          overflow: hidden;
-          height: 100%;
-          transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
-        }
-        .step-card:hover {
-          border-color: rgba(139,92,246,0.25);
-          background: rgba(109,40,217,0.04);
-          box-shadow: 0 16px 50px rgba(0,0,0,0.4), 0 0 30px rgba(109,40,217,0.08);
-        }
-        .step-num {
-          font-family: var(--mono);
-          font-size: 11px; letter-spacing: 0.14em;
-          color: #7c3aed; margin-bottom: 20px; opacity: 0.7;
-        }
-        .step-icon-wrap {
-          width: 52px; height: 52px; border-radius: 16px;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 24px; margin-bottom: 20px;
-          border: 1px solid;
-          transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-        }
-        .step-card:hover .step-icon-wrap { transform: scale(1.1) rotate(-4deg); }
-        .step-detail-item {
-          display: flex; align-items: center; gap: 8px;
-          font-size: 13px; color: #475569; padding: 5px 0;
-        }
-        .step-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-        .step-arrow { display: none; align-items: center; justify-content: center; padding: 0 4px; }
-        @media (min-width: 860px) { .step-arrow { display: flex; } }
-        .steps-grid { display: grid; grid-template-columns: 1fr; gap: 20px; align-items: stretch; }
-        @media (min-width: 860px) {
-          .steps-grid { grid-template-columns: 1fr auto 1fr auto 1fr; gap: 0; align-items: center; }
-        }
-      `}</style>
+    <section id="how" className="landing-section" style={{ paddingTop: 30 }}>
+      <div className="landing-container">
+        <SectionIntro
+          eyebrow="Execution flow"
+          title="From goal to"
+          highlight="weekly momentum"
+          copy="The middle of the page shows how the product thinks: structured phases, visible progress, and enough detail to make the next step obvious."
+        />
 
-      <div style={{ maxWidth: 1160, margin: "0 auto" }}>
-        <motion.div
-          initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }} transition={{ duration: 0.6 }}
-          style={{ textAlign: "center", marginBottom: 72 }}
-        >
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(37,99,235,0.1)", border: "1px solid rgba(59,130,246,0.2)", borderRadius: 99, padding: "6px 14px", marginBottom: 20 }}>
-            <span style={{ fontFamily: "var(--mono)", fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "#60a5fa" }}>Simple Process</span>
-          </div>
-          <h2 style={{ fontSize: "clamp(32px,4vw,52px)", fontWeight: 800, letterSpacing: "-0.03em", marginBottom: 16, lineHeight: 1.1 }}>
-            From zero to roadmap<br />
-            <span style={{ background: "linear-gradient(135deg,#60a5fa,#34d399)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-              in under 30 seconds
-            </span>
-          </h2>
-          <p style={{ color: "#475569", fontSize: 17, maxWidth: 480, margin: "0 auto", lineHeight: 1.7 }}>
-            No setup. No account required to preview. Just pure, structured direction.
-          </p>
-        </motion.div>
+        <div className="landing-roadmap-shell">
+          <motion.div
+            className="landing-card"
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.55 }}
+            style={{ padding: 28 }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 18, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ color: "var(--text-dim)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                  Suggested journey
+                </div>
+                <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, marginTop: 8 }}>
+                  Full stack to interview-ready
+                </div>
+              </div>
+              <div
+                style={{
+                  alignSelf: "flex-start",
+                  padding: "10px 14px",
+                  borderRadius: 999,
+                  background: "var(--accent-dim)",
+                  color: "var(--accent)",
+                  fontWeight: 700,
+                }}
+              >
+                10 week path
+              </div>
+            </div>
 
-        {/* FIXED: Fragments in .map() now use key prop to avoid React warnings */}
-        <div className="steps-grid">
-          {STEPS.map((step, i) => {
-            const c = ACCENT_COLORS[i];
-            return (
-              // ── FIXED: key on the wrapping element, not on React.Fragment ──
-              <div key={`step-${i}`} style={{ display: "contents" }}>
+            <div className="landing-roadmap-list">
+              {roadmapSteps.map((step, index) => (
                 <motion.div
-                  className="step-card"
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: i * 0.12 }}
+                  key={step.title}
+                  className="landing-roadmap-step"
+                  initial={{ opacity: 0, x: -18 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.2 }}
+                  transition={{ duration: 0.45, delay: index * 0.08 }}
                 >
-                  <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg,transparent,${c.line},transparent)` }} />
-                  <div className="step-num">{step.num}</div>
-                  <div className="step-icon-wrap" style={{ background: c.bg, borderColor: c.border }}>{step.icon}</div>
-                  <h3 style={{ fontSize: 19, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 12 }}>{step.title}</h3>
-                  <p style={{ fontSize: 14, color: "#475569", lineHeight: 1.65, marginBottom: 22 }}>{step.desc}</p>
-                  <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", paddingTop: 18 }}>
-                    {step.detail.map((d, j) => (
-                      <div key={j} className="step-detail-item">
-                        <div className="step-dot" style={{ background: c.dot }} />
-                        {d}
-                      </div>
-                    ))}
+                  <div className="landing-roadmap-step-number">{step.number}</div>
+                  <div>
+                    <div style={{ fontWeight: 800, fontSize: 18 }}>{step.title}</div>
+                    <div style={{ marginTop: 8, color: "var(--text-muted)", lineHeight: 1.7 }}>{step.subtitle}</div>
+                  </div>
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      borderRadius: 14,
+                      background: "rgba(255, 255, 255, 0.04)",
+                      color: "var(--text-dim)",
+                      fontWeight: 700,
+                      textAlign: "center",
+                    }}
+                  >
+                    {step.status}
                   </div>
                 </motion.div>
+              ))}
+            </div>
+          </motion.div>
 
-                {i < STEPS.length - 1 && (
-                  <div className="step-arrow">
-                    <motion.div
-                      initial={{ opacity: 0, x: -6 }}
-                      whileInView={{ opacity: 1, x: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: 0.5 + i * 0.12, duration: 0.4 }}
-                    >
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" style={{ opacity: 0.25, display: "block" }}>
-                        <path d="M5 12h14M13 6l6 6-6 6" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </motion.div>
-                  </div>
-                )}
+          <motion.div
+            className="landing-card landing-progress-card"
+            initial={{ opacity: 0, y: 28 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.25 }}
+            transition={{ duration: 0.55, delay: 0.1 }}
+          >
+            <div>
+              <div style={{ color: "var(--text-dim)", fontSize: 13, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                Adaptive pacing
               </div>
-            );
-          })}
+              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, marginTop: 8 }}>
+                Progress stays visible
+              </div>
+            </div>
+
+            <div className="landing-ring">
+              <div className="landing-ring-center">
+                <div className="landing-ring-value">58%</div>
+                <div className="landing-ring-caption">interview confidence</div>
+              </div>
+            </div>
+
+            <div className="landing-checklist">
+              <div className="landing-checklist-item">Real projects attached to each learning block</div>
+              <div className="landing-checklist-item">Smart prerequisites to reduce overwhelm</div>
+              <div className="landing-checklist-item">Interview mode once the roadmap is complete</div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>
