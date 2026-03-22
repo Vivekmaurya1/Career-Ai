@@ -12,7 +12,7 @@ import Login         from "./pages/login";
 import Register      from "./pages/register";
 import Dashboard     from "./pages/Dashboard";
 import RoadmapPage   from "./pages/RoadmapPage";
-import Settings      from "./pages/settings";
+import Settings      from "./pages/Settings";
 import { KeepAlive } from "./hooks/useKeepAlive";
 
 import { useAuth } from "./context/AuthContext";
