@@ -7,12 +7,12 @@ import { AuthProvider } from "./context/AuthContext";
 
 import Navbar        from "./components/Navbar";
 import Landing       from "./pages/landing";
-import Generate      from "./pages/Generate";
-import Login         from "./pages/Login";
-import Register      from "./pages/Register";
-import Dashboard     from "./pages/Dashboard";
-import RoadmapPage   from "./pages/RoadmapPage";
-import Settings      from "./pages/Settings";
+import Generate      from "./pages/generate";
+import Login         from "./pages/login";
+import Register      from "./pages/register";
+import Dashboard     from "./pages/dashboard";
+import RoadmapPage   from "./pages/roadmapPage";
+import Settings      from "./pages/settings";
 import { KeepAlive } from "./hooks/useKeepAlive";
 
 import { useAuth } from "./context/AuthContext";
