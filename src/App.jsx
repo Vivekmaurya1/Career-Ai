@@ -16,7 +16,7 @@ const Login = lazy(() => import("./pages/login"));
 const Register = lazy(() => import("./pages/register"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const RoadmapPage = lazy(() => import("./pages/roadmapPage"));
-const Settings = lazy(() => import("./pages/settings"));
+const Settings = lazy(() => import("./pages/Settings"));
 const MockTestPage = lazy(() => import("./pages/mockTestPage"));
 
 /* ── Page transition wrapper ─────────────────────────────────────────────── */
