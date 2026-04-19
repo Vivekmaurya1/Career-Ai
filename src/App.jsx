@@ -14,7 +14,7 @@ const Landing = lazy(() => import("./pages/landing"));
 const Generate = lazy(() => import("./pages/generate"));
 const Login = lazy(() => import("./pages/login"));
 const Register = lazy(() => import("./pages/register"));
-const Dashboard = lazy(() => import("./pages/dashboard"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 const RoadmapPage = lazy(() => import("./pages/roadmapPage"));
 const Settings = lazy(() => import("./pages/settings"));
 const MockTestPage = lazy(() => import("./pages/mockTestPage"));
