@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // pages/Dashboard.jsx
 import { useState, useEffect } from "react";
 import api from "../api/axios";
@@ -149,7 +150,7 @@ export default function Dashboard({ user }) {
   const [error,    setError]    = useState("");
 
   useEffect(() => {
-    const fetchRoadmaps = async () => {
+    const fetchRoadmaps = async () => { 
       try {
         const res = await api.get("/api/roadmap/user");
         // Attach progress % from progressJson if available, default to 0
