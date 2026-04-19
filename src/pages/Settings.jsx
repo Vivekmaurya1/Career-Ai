@@ -1,642 +1,477 @@
-// src/pages/settings.jsx
-import { useState, useRef } from "react";
+// pages/Settings.jsx
+import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
-import { useTheme } from "../context/ThemeContext";
-import axios from "../api/axios";
+import { useTheme, THEMES } from "../context/ThemeContext";
+import Navbar from "../components/Navbar";
+import api from "../api/axios";
 
-// ─── Small reusable section wrapper ─────────────────────────────────────────
-function Section({ label, index, children }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.08, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-      style={{ marginBottom: 2 }}
-    >
-      <div style={{
-        border: "1px solid var(--border)",
-        borderRadius: 4,
-        overflow: "hidden",
-        background: "var(--bg-surface)",
-        transition: "border-color 0.3s",
-      }}>
-        <div style={{
-          padding: "14px 24px",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--bg-raised)",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-        }}>
-          <div style={{ width: 2, height: 16, background: "var(--accent)", borderRadius: 1 }} />
-          <span style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 9,
-            letterSpacing: "0.2em",
-            color: "var(--accent)",
-            textTransform: "uppercase",
-          }}>
-            {label}
-          </span>
-        </div>
-        <div style={{ padding: 24 }}>
-          {children}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ─── Toast notification ──────────────────────────────────────────────────────
+/* ── Toast ────────────────────────────────────────────────────────────────── */
 function Toast({ message, type, visible }) {
+  if (!visible) return null;
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.div
-          initial={{ opacity: 0, y: 20, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
-          style={{
-            position: "fixed",
-            bottom: 32,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 9999,
-            padding: "12px 24px",
-            background: type === "error" ? "var(--danger-bg)" : "rgba(34,197,94,0.12)",
-            border: `1px solid ${type === "error" ? "var(--danger-border)" : "var(--success-border)"}`,
-            borderRadius: 4,
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 11,
-            letterSpacing: "0.1em",
-            color: type === "error" ? "var(--danger)" : "var(--success)",
-            backdropFilter: "blur(12px)",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {type === "error" ? "✕" : "✓"} {message}
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <div style={{
+      position: "fixed", bottom: 28, left: "50%", transform: "translateX(-50%)",
+      zIndex: 9999, padding: "11px 22px",
+      background: type === "error" ? "var(--error-bg)" : "var(--success-bg)",
+      border: `1px solid ${type === "error" ? "var(--error-brd)" : "var(--success-brd)"}`,
+      borderRadius: "var(--r-pill)",
+      fontFamily: "var(--font-mono)", fontSize: 11, letterSpacing: "0.1em",
+      color: type === "error" ? "var(--error)" : "var(--success)",
+      backdropFilter: "blur(12px)",
+      boxShadow: "var(--shadow-xl)",
+      whiteSpace: "nowrap",
+      animation: "fadeUp 0.2s var(--ease) both",
+    }}>
+      {type === "error" ? "✕" : "✓"} {message}
+    </div>
   );
 }
 
-// ─── Theme card ──────────────────────────────────────────────────────────────
-function ThemeCard({ theme, isActive, onSelect, isSaving }) {
+/* ── ThemeSwatch ──────────────────────────────────────────────────────────── */
+function ThemeSwatch({ t, isActive, onSelect, saving }) {
   const [hovered, setHovered] = useState(false);
-
   return (
-    <motion.button
-      onClick={() => !isSaving && onSelect(theme.id)}
+    <button
+      onClick={() => !saving && onSelect(t.id)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      whileTap={{ scale: 0.97 }}
+      disabled={saving}
+      aria-label={`Switch to ${t.label} theme`}
+      aria-pressed={isActive}
       style={{
-        background: theme.bg,
-        border: `1px solid ${isActive ? theme.accent : "rgba(255,255,255,0.07)"}`,
-        borderRadius: 16,
+        background: t.bg,
+        border: `1px solid ${isActive ? t.accent : "rgba(255,255,255,0.07)"}`,
+        borderRadius: "var(--r-lg)",
         padding: 0,
-        cursor: isSaving ? "not-allowed" : "pointer",
+        cursor: saving ? "not-allowed" : "pointer",
         position: "relative",
         overflow: "hidden",
-        transition: "border-color 0.2s, box-shadow 0.25s, transform 0.2s",
+        transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
         boxShadow: isActive
-          ? `0 0 0 1px ${theme.accent}, 0 8px 32px ${theme.accent}33`
-          : hovered
-          ? `0 8px 28px rgba(0,0,0,0.5)`
-          : "none",
-        transform: hovered && !isActive ? "translateY(-3px)" : "translateY(0)",
-        opacity: isSaving ? 0.7 : 1,
+          ? `0 0 0 1px ${t.accent}, 0 6px 28px ${t.accent}44`
+          : hovered ? "0 8px 28px rgba(0,0,0,0.45)" : "none",
+        transform: hovered && !isActive ? "translateY(-3px)" : "none",
+        opacity: saving ? 0.7 : 1,
       }}
     >
-      {/* Animated badge */}
-      {theme.animated && (
-        <div style={{
-          position: "absolute",
-          top: 8, right: 8,
-          padding: "2px 7px",
-          borderRadius: 999,
-          background: `${theme.accent}20`,
-          border: `1px solid ${theme.accent}45`,
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: 7,
-          letterSpacing: "0.12em",
-          color: theme.accent,
-          zIndex: 2,
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-        }}>
-          <span style={{
-            width: 4, height: 4, borderRadius: "50%",
-            background: theme.accent,
-            display: "inline-block",
-            animation: "theme-pulse 1.8s ease-in-out infinite",
-            boxShadow: `0 0 4px ${theme.accent}`,
-          }}/>
-          LIVE
-        </div>
-      )}
-
       {/* Mini UI preview */}
-      <div style={{ padding: "18px 16px 12px" }}>
+      <div style={{ padding: "16px 14px 10px" }}>
         {/* Fake navbar */}
         <div style={{
-          height: 7, borderRadius: 3,
-          background: `${theme.accent}18`,
-          marginBottom: 10,
-          display: "flex", alignItems: "center",
-          gap: 4, padding: "0 5px",
+          height: 6, borderRadius: 2, marginBottom: 8,
+          background: `${t.accent}20`, display: "flex", alignItems: "center", gap: 3, padding: "0 4px",
         }}>
           {[1, 0.55, 0.28].map((o, i) => (
-            <div key={i} style={{
-              width: i === 0 ? 16 : 10,
-              height: 3, borderRadius: 2,
-              background: theme.accent, opacity: o,
-            }} />
+            <div key={i} style={{ width: i === 0 ? 14 : 9, height: 2.5, borderRadius: 2, background: t.accent, opacity: o }} />
           ))}
           <div style={{ flex: 1 }} />
-          <div style={{ width: 20, height: 4, borderRadius: 999, background: theme.accent, opacity: 0.7 }} />
+          <div style={{ width: 18, height: 3.5, borderRadius: 999, background: t.accent, opacity: 0.75 }} />
         </div>
-
         {/* Fake content */}
-        <div style={{ display: "flex", gap: 6, marginBottom: 8 }}>
-          {[0.55, 0.3].map((o, i) => (
-            <div key={i} style={{
-              flex: i === 0 ? 2 : 1, height: 28, borderRadius: 6,
-              background: `${theme.accent}${i === 0 ? "14" : "09"}`,
-              border: `1px solid ${theme.accent}${i === 0 ? "28" : "18"}`,
-            }} />
-          ))}
+        <div style={{ display: "flex", gap: 5, marginBottom: 6 }}>
+          <div style={{ flex: 2, height: 24, borderRadius: 5, background: `${t.accent}12`, border: `1px solid ${t.accent}22` }} />
+          <div style={{ flex: 1, height: 24, borderRadius: 5, background: `${t.accent}08`, border: `1px solid ${t.accent}14` }} />
         </div>
-        {[0.65, 0.38, 0.5, 0.25].map((o, i) => (
-          <div key={i} style={{
-            height: 3, borderRadius: 2,
-            background: theme.accent, opacity: o * 0.5,
-            marginBottom: 5,
-            width: i === 1 ? "58%" : i === 3 ? "72%" : "100%",
-          }} />
+        {[0.6, 0.35, 0.5, 0.22].map((o, i) => (
+          <div key={i} style={{ height: 2.5, borderRadius: 2, background: t.accent, opacity: o * 0.45, marginBottom: 4, width: i === 1 ? "60%" : i === 3 ? "75%" : "100%" }} />
         ))}
-
-        {/* Fake CTA */}
-        <div style={{
-          height: 16, borderRadius: 999,
-          background: theme.accent, opacity: 0.88,
-          marginTop: 10,
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }}>
-          <div style={{ width: 28, height: 3, borderRadius: 2, background: theme.bg, opacity: 0.6 }} />
-        </div>
+        <div style={{ height: 14, borderRadius: 999, background: t.accent, opacity: 0.85, marginTop: 8 }} />
       </div>
-
-      {/* Label + description row */}
-      <div style={{
-        padding: "10px 16px 12px",
-        borderTop: `1px solid ${theme.accent}18`,
-        textAlign: "left",
-      }}>
-        <div style={{
-          display: "flex", alignItems: "center",
-          justifyContent: "space-between", gap: 8,
-          marginBottom: theme.description ? 5 : 0,
-        }}>
-          <span style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 10, letterSpacing: "0.1em",
-            color: theme.accent, fontWeight: 600,
-          }}>
-            {theme.label.toUpperCase()}
+      {/* Label */}
+      <div style={{ padding: "8px 14px 11px", borderTop: `1px solid ${t.accent}18`, textAlign: "left" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 3 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.1em", color: t.accent, fontWeight: 600 }}>
+            {t.label.toUpperCase()}
           </span>
           {isActive && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              style={{
-                width: 16, height: 16, borderRadius: "50%",
-                background: theme.accent,
-                display: "flex", alignItems: "center", justifyContent: "center",
-                flexShrink: 0,
-              }}
-            >
+            <div style={{ width: 14, height: 14, borderRadius: "50%", background: t.accent, display: "grid", placeItems: "center" }}>
               <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                <path d="M1.5 4L3.5 6L6.5 2" stroke={theme.bg} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M1.5 4L3.5 6L6.5 2" stroke={t.bg} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
-            </motion.div>
+            </div>
           )}
         </div>
-        {theme.description && (
-          <div style={{
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: 8, letterSpacing: "0.06em",
-            color: `${theme.accent}88`,
-            lineHeight: 1.4,
-          }}>
-            {theme.description}
-          </div>
-        )}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 8, letterSpacing: "0.06em", color: `${t.accent}80`, lineHeight: 1.4 }}>
+          {t.description}
+        </div>
       </div>
-
-      {/* Active glow bar */}
       {isActive && (
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: 2,
-          background: `linear-gradient(90deg, transparent, ${theme.accent}, transparent)`,
-        }} />
+        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${t.accent}, transparent)` }} />
       )}
-    </motion.button>
+    </button>
   );
 }
 
-// ─── Main Settings Page ──────────────────────────────────────────────────────
+/* ── Section wrapper ─────────────────────────────────────────────────────── */
+function Section({ label, step, children }) {
+  return (
+    <div style={{
+      border: "1px solid var(--brd)",
+      borderRadius: "var(--r-xl)",
+      overflow: "hidden",
+      background: "var(--bg-1)",
+      marginBottom: 12,
+    }}>
+      <div style={{
+        padding: "13px 22px",
+        borderBottom: "1px solid var(--brd)",
+        background: "rgba(255,255,255,0.015)",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+      }}>
+        <div style={{ width: 2, height: 15, background: "var(--a)", borderRadius: 1, flexShrink: 0 }} />
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.2em", color: "var(--a)", textTransform: "uppercase" }}>
+          {step} · {label}
+        </span>
+      </div>
+      <div style={{ padding: "22px" }}>{children}</div>
+    </div>
+  );
+}
+
+/* ── Field ─────────────────────────────────────────────────────────────────── */
+function Field({ label, hint, children }) {
+  return (
+    <div style={{ marginBottom: 16 }}>
+      {label && (
+        <label style={{ display: "block", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.16em", color: "var(--t3)", textTransform: "uppercase", marginBottom: 7 }}>
+          {label}
+          {hint && <span style={{ color: "var(--t4)", marginLeft: 6 }}>({hint})</span>}
+        </label>
+      )}
+      {children}
+    </div>
+  );
+}
+
+const inputStyle = {
+  width: "100%",
+  height: 46,
+  padding: "0 14px",
+  background: "var(--bg-2)",
+  border: "1px solid var(--brd)",
+  borderRadius: "var(--r-md)",
+  color: "var(--t1)",
+  fontFamily: "var(--font-sans)",
+  fontSize: 13,
+  outline: "none",
+  transition: "border-color var(--t-fast), box-shadow var(--t-fast)",
+};
+
+/* ── Main ──────────────────────────────────────────────────────────────────── */
 export default function Settings() {
   const navigate = useNavigate();
   const { user, setUser, logout } = useAuth();
-  const { theme: activeTheme, saveTheme, THEMES } = useTheme();
+  const { theme: activeTheme, setTheme } = useTheme();
 
-  const staticThemes  = THEMES.filter((t) => !t.animated);
-  const animatedThemes = THEMES.filter((t) => t.animated);
+  const [profile, setProfile] = useState({ name: user?.name || "", email: user?.email || "" });
+  const [profileSaving, setProfileSaving] = useState(false);
 
-  const [profile, setProfile]         = useState({ name: user?.name || "", email: user?.email || "" });
-  const [profileLoading, setProfileLoading] = useState(false);
-  const [pwForm, setPwForm]           = useState({ current: "", next: "", confirm: "" });
-  const [pwLoading, setPwLoading]     = useState(false);
-  const [pwVisible, setPwVisible]     = useState({ current: false, next: false, confirm: false });
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwVisible, setPwVisible] = useState({});
+
   const [themeSaving, setThemeSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  const [toast, setToast]             = useState({ visible: false, message: "", type: "success" });
+  const [deleteSaving, setDeleteSaving] = useState(false);
+
+  const [toast, setToast] = useState({ visible: false, message: "", type: "success" });
   const toastTimer = useRef(null);
 
-  const showToast = (message, type = "success") => {
+  const showToast = useCallback((message, type = "success") => {
     clearTimeout(toastTimer.current);
     setToast({ visible: true, message, type });
-    toastTimer.current = setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
-  };
+    toastTimer.current = setTimeout(() => setToast((t) => ({ ...t, visible: false })), 3200);
+  }, []);
 
+  /* ── Theme ── */
   const handleThemeSelect = async (id) => {
     setThemeSaving(true);
     try {
-      await saveTheme(id);
-      showToast(`Theme switched to ${THEMES.find(t => t.id === id)?.label}`);
+      setTheme(id); // instant UI update
+      await api.put("/api/auth/me", { theme: id });
+      showToast(`Theme: ${THEMES.find((t) => t.id === id)?.label}`);
     } catch {
       showToast("Failed to save theme", "error");
     } finally {
-      setThemeSaving(false);
+      setTimeout(() => setThemeSaving(false), 300);
     }
   };
 
+  /* ── Profile ── */
   const handleProfileSave = async (e) => {
     e.preventDefault();
     if (!profile.name.trim()) return showToast("Name cannot be empty", "error");
-    setProfileLoading(true);
+    setProfileSaving(true);
     try {
-      const { data } = await axios.put("/api/auth/me", {
+      const { data } = await api.put("/api/auth/me", {
         name: profile.name.trim(),
         email: profile.email.trim(),
       });
-      setUser(prev => ({ ...prev, ...data }));
-      showToast("Profile updated");
+      setUser((prev) => ({ ...prev, ...data }));
+      showToast("Profile saved");
     } catch (err) {
-      showToast(err?.response?.data?.message || "Failed to update profile", "error");
+      showToast(err.response?.data?.message || "Failed to save profile", "error");
     } finally {
-      setProfileLoading(false);
+      setProfileSaving(false);
     }
   };
 
+  /* ── Password ── */
   const handlePasswordChange = async (e) => {
     e.preventDefault();
-    if (pwForm.next.length < 8) return showToast("Password must be at least 8 characters", "error");
+    if (pwForm.next.length < 8) return showToast("Password must be ≥ 8 characters", "error");
     if (pwForm.next !== pwForm.confirm) return showToast("Passwords do not match", "error");
-    setPwLoading(true);
+    setPwSaving(true);
     try {
-      await axios.put("/api/auth/password", {
+      await api.put("/api/auth/password", {
         currentPassword: pwForm.current,
         newPassword: pwForm.next,
       });
       setPwForm({ current: "", next: "", confirm: "" });
-      showToast("Password changed successfully");
+      showToast("Password updated");
     } catch (err) {
-      showToast(err?.response?.data?.message || "Failed to change password", "error");
+      showToast(err.response?.data?.message || "Failed to update password", "error");
     } finally {
-      setPwLoading(false);
+      setPwSaving(false);
     }
   };
 
-  const handleDeleteAccount = async () => {
+  /* ── Delete ── */
+  const handleDelete = async () => {
     if (deleteConfirm !== "DELETE") return showToast('Type "DELETE" to confirm', "error");
-    setDeleteLoading(true);
+    setDeleteSaving(true);
     try {
-      await axios.delete("/api/auth/me");
+      await api.delete("/api/auth/me");
       logout();
-    } catch (err) {
-      showToast(err?.response?.data?.message || "Failed to delete account", "error");
-      setDeleteLoading(false);
+    } catch {
+      showToast("Failed to delete account", "error");
+      setDeleteSaving(false);
     }
   };
 
-  const pwStrength = (pw) => pw.length < 6 ? 25 : pw.length < 10 ? 60 : 100;
-  const pwColor    = (pw) => pw.length < 6 ? "var(--danger)" : pw.length < 10 ? "var(--accent)" : "var(--success)";
+  const pwStrength = pwForm.next.length < 6 ? 25 : pwForm.next.length < 10 ? 62 : 100;
+  const pwColor = pwForm.next.length < 6 ? "var(--error)" : pwForm.next.length < 10 ? "var(--warn)" : "var(--success)";
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
-        @keyframes spin        { to { transform: rotate(360deg); } }
-        @keyframes blink       { 50% { opacity: 0; } }
-        @keyframes theme-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.7); } }
-
-        .st-root {
-          min-height: 100vh;
-          background:
-            radial-gradient(circle at top left, var(--accent-dim), transparent 28%),
-            linear-gradient(180deg, var(--bg) 0%, var(--bg-surface) 100%);
-          font-family: 'Manrope', sans-serif;
-          padding: calc(var(--navbar-height, 56px) + 48px) 28px 120px;
-          color: var(--text);
-          transition: background 0.5s ease, color 0.3s ease;
-          position: relative;
-        }
-        .st-grid {
-          position: fixed; inset: 0;
-          opacity: var(--grid-opacity, 0.025);
-          pointer-events: none;
-          background-image:
-            linear-gradient(var(--grid-color) 1px, transparent 1px),
-            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-          background-size: 80px 80px;
-          transition: opacity 0.5s ease;
-        }
-        .st-input {
-          width: 100%; padding: 14px 16px;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid var(--input-border);
-          border-radius: 18px; color: var(--text);
-          font-family: 'Manrope', sans-serif; font-size: 14px; outline: none;
-          transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
-        }
-        .st-input:focus {
-          border-color: var(--border-focus);
-          background: var(--input-focus-bg);
-          box-shadow: var(--input-focus-shadow);
-        }
-        .st-input::placeholder { color: var(--text-faint); }
-        .st-label {
-          display: block; font-size: 10px; letter-spacing: 0.12em; font-weight: 700;
-          color: var(--text-dim); margin-bottom: 8px; text-transform: uppercase;
-        }
-        .st-btn {
-          min-height: 44px; padding: 0 24px;
-          background: linear-gradient(135deg, var(--accent), var(--success)); color: #08111d;
-          font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 800;
-          letter-spacing: 0.08em; border: none; cursor: pointer; border-radius: 999px;
-          transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px;
-        }
-        .st-btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
-        .st-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .st-btn-ghost {
-          min-height: 44px; padding: 0 24px;
-          background: rgba(255,255,255,0.03); color: var(--text-muted);
-          font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 800;
-          letter-spacing: 0.08em; border: 1px solid var(--border); cursor: pointer; border-radius: 999px;
-          transition: all 0.2s;
-        }
-        .st-btn-ghost:hover { border-color: var(--accent-border); color: var(--accent); }
-        .st-btn-danger {
-          min-height: 44px; padding: 0 24px;
-          background: var(--danger-bg); color: var(--danger);
-          font-family: 'Manrope', sans-serif; font-size: 11px; font-weight: 800;
-          letter-spacing: 0.08em; border: 1px solid var(--danger-border); cursor: pointer; border-radius: 999px;
-          transition: all 0.2s;
-        }
-        .st-btn-danger:hover:not(:disabled) { background: rgba(239,68,68,0.18); box-shadow: 0 4px 16px rgba(239,68,68,0.2); }
-        .st-btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
-        .st-spin { width: 12px; height: 12px; border: 1.5px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: spin .7s linear infinite; opacity: 0.6; }
-        .st-pw-toggle {
-          position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-          background: none; border: none; cursor: pointer; color: var(--text-dim);
-          padding: 4px; display: flex; align-items: center; transition: color 0.15s;
-        }
-        .st-pw-toggle:hover { color: var(--text-muted); }
-        .st-field { margin-bottom: 18px; }
-        .theme-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
-          gap: 14px;
-        }
-        .theme-section-label {
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 8px;
-          letter-spacing: 0.2em;
-          text-transform: uppercase;
-          color: var(--text-faint);
-          margin-bottom: 12px;
-          margin-top: 20px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-        }
-        .theme-section-label::after {
-          content: '';
-          flex: 1;
-          height: 1px;
-          background: var(--border);
-        }
-        .theme-section-label:first-child { margin-top: 0; }
-      `}</style>
-
-      <div className="st-root">
-        <div className="st-grid" />
+      <Navbar />
+      <div style={{ minHeight: "100vh", background: "var(--bg)", padding: "calc(var(--navbar-h) + 48px) clamp(20px,4vw,56px) 100px", position: "relative" }}>
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 0, opacity: 1, pointerEvents: "none",
+          backgroundImage: "linear-gradient(var(--grid-color) 1px, transparent 1px), linear-gradient(90deg, var(--grid-color) 1px, transparent 1px)",
+          backgroundSize: "68px 68px",
+        }} />
 
         <div style={{ maxWidth: 800, margin: "0 auto", position: "relative", zIndex: 1 }}>
 
-          {/* ── Page header ── */}
-          <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            style={{ marginBottom: 48 }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent)", display: "inline-block", animation: "blink 2s infinite", boxShadow: "0 0 8px var(--accent)" }} />
-              <span style={{ fontSize: 10, letterSpacing: "0.2em", color: "var(--accent)" }}>ACCOUNT SETTINGS</span>
+          {/* Header */}
+          <div style={{ marginBottom: 40 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--a)", display: "inline-block", animation: "pulse-dot 2s infinite", boxShadow: "0 0 8px var(--a-glow)" }} />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.2em", color: "var(--a)", textTransform: "uppercase" }}>Account Settings</span>
             </div>
-            <h1 style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: "clamp(40px,5vw,64px)", letterSpacing: "0.02em", lineHeight: 0.9, textTransform: "uppercase", color: "var(--text-heading)" }}>
-              PREFERENCES<br />
-              <span style={{ WebkitTextFillColor: "transparent", WebkitTextStroke: "1.5px var(--text-dim)" }}>& PROFILE</span>
+            <h1 style={{ fontFamily: "var(--font-sans)", fontSize: "clamp(2.2rem,4vw,3.5rem)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 0.95, color: "var(--t1)" }}>
+              Preferences
             </h1>
 
             {user && (
-              <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 16, padding: "14px 20px", border: "1px solid var(--border)", borderRadius: 16, background: "var(--bg-surface)" }}>
-                <div style={{
-                  width: 40, height: 40, borderRadius: "50%",
-                  background: "var(--accent-dim)",
-                  border: "1px solid var(--accent-border)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontFamily: "'Bebas Neue', sans-serif", fontSize: 18, color: "var(--accent)",
-                  flexShrink: 0,
-                }}>
+              <div style={{ marginTop: 20, display: "flex", alignItems: "center", gap: 14, padding: "13px 18px", border: "1px solid var(--brd)", borderRadius: "var(--r-lg)", background: "var(--bg-1)" }}>
+                <div style={{ width: 38, height: 38, borderRadius: "50%", background: "var(--a-dim)", border: "1px solid var(--a-brd)", display: "grid", placeItems: "center", fontFamily: "var(--font-mono)", fontSize: 14, fontWeight: 700, color: "var(--a)", flexShrink: 0 }}>
                   {(user.name || user.email || "?")[0].toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: "var(--text-heading)", fontWeight: 600, marginBottom: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {user.name || "—"}
-                  </div>
-                  <div style={{ fontSize: 11, color: "var(--text-dim)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {user.email}
-                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--t1)", marginBottom: 2 }}>{user.name || "—"}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--t3)" }}>{user.email}</div>
                 </div>
-                <button className="st-btn-ghost" style={{ fontSize: 9, padding: "6px 14px", whiteSpace: "nowrap" }} onClick={logout}>
+                <button
+                  onClick={() => { if (window.confirm("Sign out?")) logout(); }}
+                  style={{ padding: "6px 14px", border: "1px solid var(--brd)", borderRadius: "var(--r-sm)", background: "transparent", color: "var(--t3)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer", transition: "all var(--t-fast)" }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--error-brd)"; e.currentTarget.style.color = "var(--error)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--brd)"; e.currentTarget.style.color = "var(--t3)"; }}
+                >
                   SIGN OUT
                 </button>
               </div>
             )}
-          </motion.div>
+          </div>
 
-          {/* ── 01 — APPEARANCE ── */}
-          <Section label="01 · Appearance" index={0}>
-            <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 20 }}>
-              Choose a color theme. Changes apply instantly across the entire app.
-            </div>
-
-            {/* Static themes */}
-            <div className="theme-section-label">Static themes</div>
-            <div className="theme-grid">
-              {staticThemes.map(t => (
-                <ThemeCard key={t.id} theme={t} isActive={activeTheme === t.id} onSelect={handleThemeSelect} isSaving={themeSaving} />
+          {/* ── 01 Appearance ── */}
+          <Section label="Appearance" step="01">
+            <p style={{ fontSize: 12, color: "var(--t3)", marginBottom: 18, lineHeight: 1.7 }}>
+              Theme changes apply instantly across the entire app.
+            </p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: 12 }}>
+              {THEMES.map((t) => (
+                <ThemeSwatch
+                  key={t.id}
+                  t={t}
+                  isActive={activeTheme === t.id}
+                  onSelect={handleThemeSelect}
+                  saving={themeSaving}
+                />
               ))}
             </div>
-
-            {/* Animated themes */}
-            <div className="theme-section-label">
-              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent)", animation: "theme-pulse 1.8s ease-in-out infinite" }}/>
-                Animated themes
-              </span>
-            </div>
-            <div className="theme-grid">
-              {animatedThemes.map(t => (
-                <ThemeCard key={t.id} theme={t} isActive={activeTheme === t.id} onSelect={handleThemeSelect} isSaving={themeSaving} />
-              ))}
-            </div>
-
             {themeSaving && (
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 16, fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.1em" }}>
-                <div className="st-spin" />
-                APPLYING THEME...
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--t3)", letterSpacing: "0.12em" }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", border: "1.5px solid var(--a-brd)", borderTopColor: "var(--a)", animation: "spin 0.7s linear infinite" }} />
+                Applying…
               </div>
             )}
           </Section>
 
-          {/* ── 02 — PROFILE ── */}
-          <Section label="02 · Profile" index={1}>
+          {/* ── 02 Profile ── */}
+          <Section label="Profile" step="02">
             <form onSubmit={handleProfileSave}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-                <div className="st-field">
-                  <label className="st-label">Display Name</label>
-                  <input className="st-input" type="text" placeholder="Your name"
-                    value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} />
-                </div>
-                <div className="st-field">
-                  <label className="st-label">Email Address</label>
-                  <input className="st-input" type="email" placeholder="you@example.com"
-                    value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} />
-                </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <Field label="Display Name">
+                  <input
+                    style={inputStyle}
+                    type="text"
+                    placeholder="Your full name"
+                    value={profile.name}
+                    onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))}
+                    onFocus={(e) => { e.target.style.borderColor = "var(--a-brd)"; e.target.style.boxShadow = "0 0 0 3px var(--a-dim)"; }}
+                    onBlur={(e) => { e.target.style.borderColor = "var(--brd)"; e.target.style.boxShadow = "none"; }}
+                  />
+                </Field>
+                <Field label="Email Address">
+                  <input
+                    style={inputStyle}
+                    type="email"
+                    placeholder="you@example.com"
+                    value={profile.email}
+                    onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))}
+                    onFocus={(e) => { e.target.style.borderColor = "var(--a-brd)"; e.target.style.boxShadow = "0 0 0 3px var(--a-dim)"; }}
+                    onBlur={(e) => { e.target.style.borderColor = "var(--brd)"; e.target.style.boxShadow = "none"; }}
+                  />
+                </Field>
               </div>
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-                <button type="button" className="st-btn-ghost" onClick={() => setProfile({ name: user?.name || "", email: user?.email || "" })}>RESET</button>
-                <button type="submit" className="st-btn" disabled={profileLoading}>
-                  {profileLoading ? <><span className="st-spin" /> SAVING...</> : "SAVE PROFILE"}
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setProfile({ name: user?.name || "", email: user?.email || "" })}
+                  style={{ height: 36, padding: "0 14px", border: "1px solid var(--brd)", borderRadius: "var(--r-sm)", background: "transparent", color: "var(--t3)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer" }}
+                >
+                  RESET
+                </button>
+                <button
+                  type="submit"
+                  disabled={profileSaving}
+                  style={{ height: 36, padding: "0 18px", background: "var(--a)", border: "none", borderRadius: "var(--r-sm)", color: "var(--a-text)", fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 800, cursor: profileSaving ? "not-allowed" : "pointer", opacity: profileSaving ? 0.6 : 1, display: "flex", alignItems: "center", gap: 8 }}
+                >
+                  {profileSaving && <span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid rgba(0,0,0,0.3)", borderTopColor: "var(--a-text)", animation: "spin 0.7s linear infinite", flexShrink: 0 }} />}
+                  {profileSaving ? "Saving…" : "Save Profile"}
                 </button>
               </div>
             </form>
           </Section>
 
-          {/* ── 03 — PASSWORD ── */}
-          <Section label="03 · Password" index={2}>
+          {/* ── 03 Password ── */}
+          <Section label="Password" step="03">
             <form onSubmit={handlePasswordChange}>
               {[
-                { key: "current", label: "Current Password",      placeholder: "Your current password" },
-                { key: "next",    label: "New Password",           placeholder: "Min. 8 characters" },
-                { key: "confirm", label: "Confirm New Password",   placeholder: "Repeat new password" },
-              ].map(f => (
-                <div key={f.key} className="st-field" style={{ position: "relative" }}>
-                  <label className="st-label">{f.label}</label>
-                  <input className="st-input"
-                    type={pwVisible[f.key] ? "text" : "password"}
-                    placeholder={f.placeholder}
-                    value={pwForm[f.key]}
-                    onChange={e => setPwForm(p => ({ ...p, [f.key]: e.target.value }))}
-                    style={{ paddingRight: 40 }}
-                  />
-                  <button type="button" className="st-pw-toggle" onClick={() => setPwVisible(v => ({ ...v, [f.key]: !v[f.key] }))} tabIndex={-1}>
-                    {pwVisible[f.key]
-                      ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                      : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                    }
-                  </button>
+                { key: "current", label: "Current Password",    placeholder: "Your current password" },
+                { key: "next",    label: "New Password",         placeholder: "Min. 8 characters" },
+                { key: "confirm", label: "Confirm New Password", placeholder: "Repeat new password" },
+              ].map((f) => (
+                <Field key={f.key} label={f.label}>
+                  <div style={{ position: "relative" }}>
+                    <input
+                      type={pwVisible[f.key] ? "text" : "password"}
+                      placeholder={f.placeholder}
+                      value={pwForm[f.key]}
+                      onChange={(e) => setPwForm((p) => ({ ...p, [f.key]: e.target.value }))}
+                      style={{ ...inputStyle, paddingRight: 40 }}
+                      onFocus={(e) => { e.target.style.borderColor = "var(--a-brd)"; e.target.style.boxShadow = "0 0 0 3px var(--a-dim)"; }}
+                      onBlur={(e) => { e.target.style.borderColor = "var(--brd)"; e.target.style.boxShadow = "none"; }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setPwVisible((v) => ({ ...v, [f.key]: !v[f.key] }))}
+                      style={{ position: "absolute", right: 11, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--t4)", padding: 4 }}
+                    >
+                      {pwVisible[f.key]
+                        ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" /><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" /><line x1="1" y1="1" x2="23" y2="23" /></svg>
+                        : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+                      }
+                    </button>
+                  </div>
                   {f.key === "next" && pwForm.next && (
-                    <div style={{ marginTop: 5, height: 2, background: "var(--border)", borderRadius: 1, overflow: "hidden" }}>
-                      <div style={{ height: "100%", borderRadius: 1, background: pwColor(pwForm.next), width: `${pwStrength(pwForm.next)}%`, transition: "width 0.3s, background 0.3s" }} />
+                    <div style={{ marginTop: 5, height: 2, background: "var(--brd)", borderRadius: 1, overflow: "hidden" }}>
+                      <div style={{ height: "100%", width: `${pwStrength}%`, background: pwColor, transition: "width 0.3s, background 0.3s", borderRadius: 1 }} />
                     </div>
                   )}
-                  {f.key === "confirm" && pwForm.confirm && pwForm.next && (
-                    <div style={{ marginTop: 5, fontSize: 9, letterSpacing: "0.1em", color: pwForm.confirm === pwForm.next ? "var(--success)" : "var(--danger)" }}>
-                      {pwForm.confirm === pwForm.next ? "✓ PASSWORDS MATCH" : "✕ PASSWORDS DO NOT MATCH"}
+                  {f.key === "confirm" && pwForm.confirm && (
+                    <div style={{ marginTop: 5, fontFamily: "var(--font-mono)", fontSize: 9, color: pwForm.confirm === pwForm.next ? "var(--success)" : "var(--error)" }}>
+                      {pwForm.confirm === pwForm.next ? "✓ MATCH" : "✕ NO MATCH"}
                     </div>
                   )}
-                </div>
+                </Field>
               ))}
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button type="submit" className="st-btn" disabled={pwLoading}>
-                  {pwLoading ? <><span className="st-spin" /> UPDATING...</> : "CHANGE PASSWORD"}
+                <button
+                  type="submit"
+                  disabled={pwSaving}
+                  style={{ height: 36, padding: "0 18px", background: "var(--a)", border: "none", borderRadius: "var(--r-sm)", color: "var(--a-text)", fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 800, cursor: pwSaving ? "not-allowed" : "pointer", opacity: pwSaving ? 0.6 : 1, display: "flex", alignItems: "center", gap: 8 }}
+                >
+                  {pwSaving && <span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid rgba(0,0,0,0.3)", borderTopColor: "var(--a-text)", animation: "spin 0.7s linear infinite", flexShrink: 0 }} />}
+                  {pwSaving ? "Updating…" : "Change Password"}
                 </button>
               </div>
             </form>
           </Section>
 
-          {/* ── 04 — DANGER ZONE ── */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.32, duration: 0.4 }}>
-            <div style={{ border: "1px solid var(--danger-border)", borderRadius: 16, overflow: "hidden", background: "var(--bg-surface)" }}>
-              <div style={{ padding: "14px 24px", borderBottom: "1px solid var(--danger-border)", background: "var(--danger-bg)", display: "flex", alignItems: "center", gap: 12 }}>
-                <div style={{ width: 2, height: 16, background: "var(--danger)", borderRadius: 1 }} />
-                <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 9, letterSpacing: "0.2em", color: "var(--danger)", textTransform: "uppercase" }}>04 · Danger Zone</span>
-              </div>
-              <div style={{ padding: 24 }}>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.7, marginBottom: 20 }}>
-                  Permanently delete your account and all associated roadmaps.{" "}
-                  <span style={{ color: "var(--danger)" }}>This action cannot be undone.</span>
-                </div>
-                <div className="st-field">
-                  <label className="st-label" style={{ color: "rgba(239,68,68,0.5)" }}>
-                    Type <span style={{ color: "var(--danger)", fontWeight: 700 }}>DELETE</span> to confirm
-                  </label>
-                  <input className="st-input" type="text" placeholder="DELETE"
-                    value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
-                    style={{ borderColor: deleteConfirm === "DELETE" ? "var(--danger-border)" : undefined }}
-                  />
-                </div>
-                <button type="button" className="st-btn-danger"
-                  disabled={deleteConfirm !== "DELETE" || deleteLoading}
-                  onClick={handleDeleteAccount}
-                >
-                  {deleteLoading ? <><span className="st-spin" style={{ display: "inline-block" }} /> DELETING...</> : "DELETE ACCOUNT"}
-                </button>
-              </div>
+          {/* ── 04 Danger Zone ── */}
+          <div style={{ border: "1px solid var(--error-brd)", borderRadius: "var(--r-xl)", overflow: "hidden", background: "var(--bg-1)" }}>
+            <div style={{ padding: "13px 22px", borderBottom: "1px solid var(--error-brd)", background: "var(--error-bg)", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 2, height: 15, background: "var(--error)", borderRadius: 1 }} />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.2em", color: "var(--error)", textTransform: "uppercase" }}>04 · Danger Zone</span>
             </div>
-          </motion.div>
+            <div style={{ padding: 22 }}>
+              <p style={{ fontSize: 12, color: "var(--t3)", lineHeight: 1.7, marginBottom: 16 }}>
+                Permanently deletes your account and all roadmaps.
+                <span style={{ color: "var(--error)" }}> This cannot be undone.</span>
+              </p>
+              <Field label={<>Type <strong style={{ color: "var(--error)" }}>DELETE</strong> to confirm</>}>
+                <input
+                  style={{ ...inputStyle, borderColor: deleteConfirm === "DELETE" ? "var(--error-brd)" : "var(--brd)" }}
+                  type="text"
+                  placeholder="DELETE"
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  onFocus={(e) => { e.target.style.boxShadow = deleteConfirm === "DELETE" ? "0 0 0 3px var(--error-bg)" : "none"; }}
+                  onBlur={(e) => { e.target.style.boxShadow = "none"; }}
+                />
+              </Field>
+              <button
+                onClick={handleDelete}
+                disabled={deleteConfirm !== "DELETE" || deleteSaving}
+                style={{ height: 36, padding: "0 18px", background: "var(--error-bg)", border: "1px solid var(--error-brd)", borderRadius: "var(--r-sm)", color: "var(--error)", fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 800, cursor: deleteConfirm !== "DELETE" || deleteSaving ? "not-allowed" : "pointer", opacity: deleteConfirm !== "DELETE" ? 0.45 : 1, display: "flex", alignItems: "center", gap: 8 }}
+              >
+                {deleteSaving && <span style={{ width: 10, height: 10, borderRadius: "50%", border: "1.5px solid var(--error-brd)", borderTopColor: "var(--error)", animation: "spin 0.7s linear infinite" }} />}
+                {deleteSaving ? "Deleting…" : "Delete Account"}
+              </button>
+            </div>
+          </div>
 
-          {/* ── Back link ── */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
-            style={{ marginTop: 32, display: "flex", gap: 8 }}>
-            <button className="st-btn-ghost" style={{ fontSize: 9 }} onClick={() => navigate(-1)}>← BACK</button>
-            <button className="st-btn-ghost" style={{ fontSize: 9 }} onClick={() => navigate("/dashboard")}>→ DASHBOARD</button>
-          </motion.div>
-
+          {/* Back links */}
+          <div style={{ marginTop: 28, display: "flex", gap: 8 }}>
+            <button
+              onClick={() => navigate(-1)}
+              style={{ height: 34, padding: "0 14px", border: "1px solid var(--brd)", borderRadius: "var(--r-sm)", background: "transparent", color: "var(--t3)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer" }}
+            >
+              ← BACK
+            </button>
+            <button
+              onClick={() => navigate("/dashboard")}
+              style={{ height: 34, padding: "0 14px", border: "1px solid var(--brd)", borderRadius: "var(--r-sm)", background: "transparent", color: "var(--t3)", fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em", cursor: "pointer" }}
+            >
+              DASHBOARD →
+            </button>
+          </div>
         </div>
       </div>
 

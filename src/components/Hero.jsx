@@ -1,192 +1,222 @@
-import { useNavigate } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import styles from "./Hero.module.css";
 
-const metrics = [
-  { value: "12k+", label: "personalized plans generated" },
-  { value: "4.9/5", label: "average learner satisfaction" },
-  { value: "30 sec", label: "to ship your first roadmap" },
+const ROLES = [
+  "Frontend Engineer", "Backend Developer", "Data Scientist",
+  "ML Engineer", "Product Designer", "DevOps Engineer",
+  "iOS Developer", "Cloud Architect", "Security Engineer",
 ];
 
-const heroStats = [
-  { label: "target role", value: "Product-ready roadmap" },
-  { label: "estimated duration", value: "10 weeks to confidence" },
-  { label: "delivery style", value: "Projects + interview prep" },
+const STATS = [
+  { value: "12k+", label: "Roadmaps",  sub: "generated" },
+  { value: "94%",  label: "Interview", sub: "success rate" },
+  { value: "≤30s", label: "First plan",sub: "to generate" },
+  { value: "8.6w", label: "Avg. time", sub: "to offer" },
 ];
 
-function FloatingOrb({ size, top, left, right, delay, color }) {
+export default function Hero({ onGenerate }) {
+  const [input,   setInput]   = useState("");
+  const [roleIdx, setRoleIdx] = useState(0);
+  const [roleOut, setRoleOut] = useState(false);
+  const progressRef = useRef(null);
+  const inputRef    = useRef(null);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setRoleOut(true);
+      setTimeout(() => { setRoleIdx(i => (i + 1) % ROLES.length); setRoleOut(false); }, 220);
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!progressRef.current) return;
+    const raf = requestAnimationFrame(() => {
+      if (progressRef.current) progressRef.current.style.width = "78%";
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  const handleSubmit = () => {
+    if (onGenerate) onGenerate(input.trim() || ROLES[roleIdx]);
+  };
+
   return (
-    <motion.div
-      animate={{ y: [0, -18, 0], x: [0, 8, 0] }}
-      transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay }}
-      style={{
-        position: "absolute",
-        top,
-        left,
-        right,
-        width: size,
-        height: size,
-        borderRadius: "50%",
-        background: color,
-        filter: "blur(8px)",
-        opacity: 0.8,
-        pointerEvents: "none",
-      }}
-    />
-  );
-}
+    <section className={styles.section} aria-label="Hero">
+      {/* Ambient glows */}
+      <div className={styles.glow1} aria-hidden/>
+      <div className={styles.glow2} aria-hidden/>
+      <div className={styles.scanWrap} aria-hidden><div className={styles.scan}/></div>
 
-export default function Hero() {
-  const navigate = useNavigate();
-  const { scrollYProgress } = useScroll();
-  const glowY = useTransform(scrollYProgress, [0, 1], [0, 180]);
-  const badgeScale = useTransform(scrollYProgress, [0, 0.15], [1, 0.96]);
+      {/* Ticker */}
+      <div className={styles.ticker} aria-hidden>
+        <div className={styles.tickerInner}>
+          {[...ROLES, ...ROLES, ...ROLES, ...ROLES].map((r, i) => (
+            <span key={i} className={styles.tickerItem}>
+              {r}<span className={styles.tickerDot}/>
+            </span>
+          ))}
+        </div>
+      </div>
 
-  return (
-    <section style={{ position: "relative", padding: "132px 0 84px" }}>
-      <FloatingOrb size={180} top="10%" right="12%" delay={0} color="radial-gradient(circle, color-mix(in srgb, var(--accent) 38%, transparent), transparent 70%)" />
-      <FloatingOrb size={220} top="38%" left="-40px" delay={1.2} color="radial-gradient(circle, color-mix(in srgb, var(--accent-bright) 18%, transparent), transparent 70%)" />
-      <FloatingOrb size={170} top="62%" right="25%" delay={2.2} color="radial-gradient(circle, rgba(255, 255, 255, 0.12), transparent 70%)" />
+      <div className={`container ${styles.body}`}>
+        <div className={styles.grid}>
 
-      <div className="landing-container">
-        <div className="landing-hero-layout">
-          <div>
-            <motion.div style={{ scale: badgeScale }} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.55 }}>
-              <div className="landing-eyebrow">AI career planning system</div>
-            </motion.div>
+          {/* Left */}
+          <div className={styles.left}>
+            <div className={styles.eyebrow}>
+              <span className="signal-label">AI Career Planning</span>
+              <span className={styles.eyebrowPill}>v2.0</span>
+            </div>
 
-            <motion.h1
-              className="landing-heading"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.08 }}
-              style={{ maxWidth: 760, marginTop: 24 }}
-            >
-              A sharper path from <span className="landing-heading-gradient">learning</span> to your next role.
-            </motion.h1>
+            <h1 className={styles.headline}>
+              <span className={styles.hlLine1}>Your next role</span>
+              <span className={styles.hlLine2}>starts with</span>
+              <span className={styles.hlLine3}>a roadmap.</span>
+            </h1>
 
-            <motion.p
-              className="landing-copy"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.16 }}
-              style={{ maxWidth: 620, marginTop: 24 }}
-            >
-              Create a focused learning roadmap with milestones, projects, and interview preparation shaped around your target role, timeline, and current level.
-            </motion.p>
+            <p className={styles.sub}>
+              Turn your career goal into a focused, week-by-week execution plan —
+              with real projects, tracked milestones, and interview prep built in.
+            </p>
 
-            <motion.div
-              className="landing-actions"
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.24 }}
-              style={{ marginTop: 30 }}
-            >
-              <button className="landing-btn landing-btn-primary" onClick={() => navigate("/generate")}>
-                Start building now
-                <span aria-hidden="true">-&gt;</span>
-              </button>
-              <button
-                className="landing-btn landing-btn-secondary"
-                onClick={() => document.getElementById("features")?.scrollIntoView({ behavior: "smooth" })}
-              >
-                Explore the experience
-              </button>
-            </motion.div>
-
-            <motion.div
-              className="landing-metrics"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.65, delay: 0.34 }}
-              style={{ marginTop: 34 }}
-            >
-              {metrics.map((item) => (
-                <div key={item.label} className="landing-metric">
-                  <div className="landing-metric-value">{item.value}</div>
-                  <div className="landing-metric-label">{item.label}</div>
+            {/* Input */}
+            <div className={styles.inputWrap}>
+              <label className={styles.inputLabel} htmlFor="hero-role-input">
+                <span className="label">Target role</span>
+              </label>
+              <div className={styles.inputRow}>
+                <div className={styles.inputPrefix} aria-hidden>
+                  <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+                    <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.3"/>
+                    <path d="M9.5 9.5L12.5 12.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+                  </svg>
                 </div>
+                <input
+                  id="hero-role-input"
+                  ref={inputRef}
+                  className={styles.input}
+                  placeholder={ROLES[roleIdx]}
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSubmit()}
+                  autoComplete="off"
+                />
+                <button className={styles.inputBtn} onClick={handleSubmit} aria-label="Build roadmap">
+                  Build roadmap
+                  <svg width="12" height="12" viewBox="0 0 13 13" fill="none">
+                    <path d="M2 6.5h9M7.5 3l3.5 3.5L7.5 10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+              <p className={styles.inputHint}>Takes ~30 seconds · No account required to preview</p>
+            </div>
+
+            {/* Chips */}
+            <div className={styles.chips}>
+              <span className="label" style={{ flexShrink: 0, marginRight: 4 }}>Quick pick:</span>
+              {ROLES.slice(0, 5).map(role => (
+                <button
+                  key={role}
+                  className={styles.chip}
+                  onClick={() => { setInput(role); inputRef.current?.focus(); }}
+                  type="button"
+                >
+                  {role}
+                </button>
               ))}
-            </motion.div>
+            </div>
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, x: 26 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-            style={{ position: "relative" }}
-          >
-            <motion.div style={{ y: glowY }} className="landing-card">
-              <div style={{ padding: 28 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                  <div>
-                    <div style={{ color: "var(--text-dim)", fontSize: 13 }}>Roadmap preview</div>
-                    <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 28, marginTop: 6 }}>Frontend Engineer Track</div>
-                  </div>
-                  <div
-                    style={{
-                      padding: "10px 14px",
-                      borderRadius: 16,
-                      background: "var(--accent-dim)",
-                      color: "var(--accent)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Ready in 30 sec
-                  </div>
-                </div>
-
-                <div style={{ marginTop: 28, display: "grid", gap: 14 }}>
-                  {heroStats.map((item, index) => (
-                    <motion.div
-                      key={item.label}
-                      initial={{ opacity: 0, x: -14 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.45, delay: 0.35 + index * 0.1 }}
-                      style={{
-                        padding: 18,
-                        borderRadius: 22,
-                        background: "rgba(255, 255, 255, 0.03)",
-                        border: "1px solid var(--border)",
-                      }}
-                    >
-                      <div style={{ color: "var(--text-dim)", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.12em" }}>
-                        {item.label}
-                      </div>
-                      <div style={{ color: "var(--text)", fontSize: 17, fontWeight: 700, marginTop: 8 }}>{item.value}</div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                <div
-                  style={{
-                    marginTop: 24,
-                    padding: 22,
-                    borderRadius: 24,
-                    background: "linear-gradient(135deg, var(--accent-dim), rgba(255, 255, 255, 0.04))",
-                    border: "1px solid var(--accent-border)",
-                  }}
-                >
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, color: "var(--text-dim)", fontSize: 13 }}>
-                    <span>Progress alignment</span>
-                    <span>78%</span>
-                  </div>
-                  <div style={{ marginTop: 12, height: 10, borderRadius: 999, background: "rgba(255, 255, 255, 0.08)", overflow: "hidden" }}>
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: "78%" }}
-                      transition={{ duration: 1, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                      style={{
-                        height: "100%",
-                        borderRadius: 999,
-                        background: "linear-gradient(90deg, var(--accent-bright), var(--accent))",
-                        boxShadow: "0 0 24px color-mix(in srgb, var(--accent) 20%, transparent)",
-                      }}
-                    />
-                  </div>
-                </div>
+          {/* Right — Preview panel */}
+          <div className={styles.right}>
+            <div className={styles.panelHeader}>
+              <div className={styles.panelDots} aria-hidden>
+                <span style={{ background: "#ff5f57" }}/>
+                <span style={{ background: "#febc2e" }}/>
+                <span style={{ background: "#28c840" }}/>
               </div>
-            </motion.div>
-          </motion.div>
+              <span className="label">live preview</span>
+              <div className={styles.panelLive}>
+                <span className={styles.liveDot}/>
+                <span>active</span>
+              </div>
+            </div>
+
+            {/* Card: Active roadmap */}
+            <div className={styles.card} style={{ animationDelay: "0.1s" }}>
+              <div className={styles.cardRow}>
+                <div>
+                  <div className="label" style={{ marginBottom: 3 }}>Active roadmap</div>
+                  <div className={styles.cardTitle}>Frontend Engineer</div>
+                </div>
+                <span className="tag">Week 4/10</span>
+              </div>
+              <div className={styles.progressMeta}>
+                <span>Core JavaScript</span>
+                <span className={styles.pct}>78%</span>
+              </div>
+              <div className={styles.progressTrack}>
+                <div ref={progressRef} className={styles.progressFill} style={{ width: 0 }}/>
+              </div>
+              <div className={styles.cardMilestones}>
+                {["Foundations", "JS Patterns", "React", "System Design"].map((m, i) => (
+                  <div key={m} className={`${styles.milestone} ${i < 2 ? styles.miDone : i === 2 ? styles.miActive : ""}`}>
+                    <div className={styles.miDot}/>
+                    <span>{m}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Card: Next milestone */}
+            <div className={`${styles.card} ${styles.cardHighlight}`} style={{ animationDelay: "0.18s" }}>
+              <div className="label" style={{ marginBottom: 6 }}>Next milestone</div>
+              <div className={styles.cardTitle}>React Patterns — Project Build</div>
+              <div className={styles.statusRow}>
+                <span className={styles.statusDot}/>
+                <span className="label">In progress · 3 days left</span>
+              </div>
+            </div>
+
+            {/* Card: Interview readiness */}
+            <div className={styles.card} style={{ animationDelay: "0.26s" }}>
+              <div className="label" style={{ marginBottom: 8 }}>Interview readiness</div>
+              <div className={styles.readyBars}>
+                {[
+                  { label: "Data structures", pct: 72 },
+                  { label: "System design",   pct: 45 },
+                  { label: "Behavioral",      pct: 60 },
+                  { label: "Portfolio",        pct: 88 },
+                ].map(b => (
+                  <div key={b.label} className={styles.readyBar}>
+                    <div className={styles.readyBarMeta}>
+                      <span>{b.label}</span>
+                      <span className={styles.readyPct}>{b.pct}%</span>
+                    </div>
+                    <div className={styles.readyTrack}>
+                      <div className={styles.readyFill} style={{ width: `${b.pct}%` }}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats bar */}
+        <div className={styles.statsBar}>
+          <div className={styles.statsAccent}/>
+          {STATS.map((s, i) => (
+            <div key={s.label} className={styles.stat}>
+              <div className={styles.statVal}>{s.value}</div>
+              <div className={styles.statMeta}>
+                <span className={styles.statLabel}>{s.label}</span>
+                <span className={styles.statSub}>{s.sub}</span>
+              </div>
+              {i < STATS.length - 1 && <div className={styles.statDiv}/>}
+            </div>
+          ))}
         </div>
       </div>
     </section>

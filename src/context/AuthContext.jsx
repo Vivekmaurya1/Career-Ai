@@ -1,76 +1,137 @@
-// context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from "react";
-import axios from "../api/axios";
+/* eslint-disable no-unused-vars */
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import api from "../api/axios"; // ✅ IMPORTANT
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-/**
- * AuthProvider wraps the entire app.
- *
- * onThemeChange — optional callback passed from App.jsx.
- * It should be ThemeContext.setThemeFromUser so the two contexts
- * stay fully decoupled (no circular import).
- */
 export function AuthProvider({ children, onThemeChange }) {
-  const [user,    setUser]    = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Apply theme whenever the user object changes (login, refresh)
-  useEffect(() => {
-    if (user?.theme && onThemeChange) {
-      onThemeChange(user.theme);
-    }
-  }, [user?.theme, onThemeChange]);
+  // Apply theme
+  const applyTheme = useCallback(
+    (theme) => {
+      if (theme && onThemeChange) {
+        onThemeChange(theme);
+      }
+    },
+    [onThemeChange]
+  );
 
-  // Restore session on page refresh
+  // Central user setter
+  const updateUser = useCallback(
+    (userData) => {
+      setUser(userData);
+      applyTheme(userData?.theme);
+    },
+    [applyTheme]
+  );
+
+  // Restore session
   useEffect(() => {
-    const restore = async () => {
+    const restoreSession = async () => {
       const token = localStorage.getItem("token");
-      if (!token) { setLoading(false); return; }
+
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const { data } = await axios.get("/api/auth/me");
-        setUser(data);
-      } catch {
+        const res = await api.get("/api/auth/me");
+        updateUser(res.data);
+      } catch (error) {
         localStorage.removeItem("token");
         setUser(null);
       } finally {
         setLoading(false);
       }
     };
-    restore();
+
+    restoreSession();
+  }, [updateUser]);
+
+  // Register
+  const register = useCallback(async (name, email, password) => {
+    try {
+      await api.post("/api/auth/register", { name, email, password });
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Registration failed",
+      };
+    }
   }, []);
 
-  const register = async (name, email, password) => {
-    try {
-      await axios.post("/api/auth/register", { name, email, password });
-      return { success: true };
-    } catch (err) {
-      return { success: false, message: err.response?.data?.message || "Registration failed" };
-    }
-  };
+  // Login
+  const login = useCallback(
+    async (email, password) => {
+      try {
+        const res = await api.post("/api/auth/login", { email, password });
 
-  const login = async (email, password) => {
-    try {
-      const { data: tokenData } = await axios.post("/api/auth/login", { email, password });
-      localStorage.setItem("token", tokenData.token);
-      const { data: me } = await axios.get("/api/auth/me");
-      setUser(me);
-      return { success: true };
-    } catch (err) {
-      return { success: false, message: err.response?.data?.message || "Invalid email or password" };
-    }
-  };
+        const { token } = res.data;
 
-  const logout = () => {
+        localStorage.setItem("token", token);
+
+        // Fetch user
+        const meRes = await api.get("/api/auth/me");
+
+        updateUser(meRes.data);
+
+        return { success: true };
+      } catch (error) {
+        return {
+          success: false,
+          message: error.response?.data?.message || "Login failed",
+        };
+      }
+    },
+    [updateUser]
+  );
+
+  // Logout
+  const logout = useCallback(() => {
     localStorage.removeItem("token");
     setUser(null);
-  };
+
+    // Fix: use valid theme id
+    applyTheme("lime");
+  }, [applyTheme]);
+
+  // Initials
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "U";
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading, setUser }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser: updateUser,
+        login,
+        register,
+        logout,
+        loading,
+        initials,
+        isAuthenticated: !!user,
+      }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   );
 }
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used inside AuthProvider");
+  }
+  return context;
+};

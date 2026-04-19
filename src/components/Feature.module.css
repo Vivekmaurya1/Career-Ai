@@ -1,0 +1,209 @@
+/* ─── Feature.module.css ─────────────────────────────────────────────────── */
+
+.section {
+  padding: clamp(64px, 8vw, 104px) 0;
+  position: relative;
+}
+
+/* ── Scroll animation base ── */
+[data-animate] {
+  opacity: 0;
+  transform: translateY(22px);
+  transition: opacity 0.55s var(--ease), transform 0.55s var(--ease);
+}
+
+[data-animate].visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Header ── */
+.header {
+  display: grid;
+  grid-template-columns: 1fr 0.75fr;
+  gap: 40px;
+  align-items: end;
+  margin-bottom: 44px;
+}
+
+.headerLeft { display: flex; flex-direction: column; gap: 14px; }
+
+.headline {
+  font-size: clamp(1.8rem, 3.2vw, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 0.96;
+  color: var(--t1);
+}
+
+.headerSub {
+  font-size: 13px;
+  line-height: 1.74;
+  color: var(--t2);
+  font-weight: 400;
+  max-width: 340px;
+  padding-top: 6px;
+}
+
+/* ── Cards ── */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  background: var(--brd);
+  border: 1px solid var(--brd);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  gap: 1px;
+  margin-bottom: 56px;
+}
+
+.card {
+  position: relative;
+  padding: 26px 22px 26px;
+  background: var(--bg-1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: background var(--t-mid) var(--ease), opacity 0.55s var(--ease), transform 0.55s var(--ease);
+}
+
+.card:hover { background: rgba(184,255,60,0.016); }
+.card:hover .cardAccent { transform: scaleX(1); }
+
+.cardAccent {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--a);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 280ms var(--ease);
+}
+
+.cardTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.cardIcon {
+  width: 34px; height: 34px;
+  border-radius: 8px;
+  background: var(--a-dim);
+  border: 1px solid var(--a-brd);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--a);
+  flex-shrink: 0;
+}
+
+.cardNum {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--t4);
+  letter-spacing: 0.08em;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--t1);
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+
+.cardBody {
+  font-size: 12px;
+  line-height: 1.72;
+  color: var(--t3);
+  font-weight: 400;
+}
+
+/* ── Comparison ── */
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(36px, 5vw, 64px);
+  align-items: start;
+}
+
+.compareTitle {
+  font-size: clamp(1.3rem, 1.9vw, 1.75rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--t1);
+  line-height: 1.15;
+  margin-bottom: 12px;
+}
+
+.compareBody {
+  font-size: 13px;
+  color: var(--t2);
+  line-height: 1.74;
+  font-weight: 400;
+  max-width: 380px;
+  margin-bottom: 22px;
+}
+
+.compareMeta { display: flex; flex-direction: column; gap: 8px; }
+
+.compareMetaItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--t2);
+  font-weight: 600;
+}
+
+/* Table */
+.table {
+  background: var(--bg-1);
+  border: 1px solid var(--brd);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+}
+
+.tableHead {
+  display: grid;
+  grid-template-columns: 1fr 72px 72px;
+  padding: 11px 16px;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--brd);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--t4);
+}
+
+.tableHead span { display: flex; align-items: center; justify-content: center; }
+.tableHead span:first-child { justify-content: flex-start; }
+.tableHeadUs { color: var(--a) !important; }
+
+.tableRow {
+  display: grid;
+  grid-template-columns: 1fr 72px 72px;
+  padding: 11px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  align-items: center;
+  transition: background var(--t-fast);
+}
+
+.tableRow:last-child { border-bottom: none; }
+.tableRow:hover { background: rgba(255,255,255,0.016); }
+
+.tableLabel { font-size: 12px; color: var(--t3); font-weight: 500; }
+.tableCell { display: flex; justify-content: center; }
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
+  .header { grid-template-columns: 1fr; gap: 14px; }
+  .headerSub { max-width: none; padding-top: 0; }
+  .cards { grid-template-columns: 1fr; }
+  .compare { grid-template-columns: 1fr; gap: 36px; }
+}

@@ -1,0 +1,440 @@
+/* ─── Navbar.module.css ──────────────────────────────────────────────────── */
+
+.shell {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 900;
+  height: var(--navbar-h);
+  transition:
+    background var(--t-mid) var(--ease),
+    border-color var(--t-mid) var(--ease),
+    backdrop-filter var(--t-mid) var(--ease);
+  border-bottom: 1px solid transparent;
+}
+
+.shell.scrolled {
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  border-bottom-color: var(--brd);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 0;
+}
+
+/* ── Logo ── */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-right: 36px;
+  flex-shrink: 0;
+}
+
+.logoMark {
+  width: 26px; height: 26px;
+  background: var(--a);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  color: var(--a-text);
+  flex-shrink: 0;
+  box-shadow: var(--glow-a);
+  transition: transform var(--t-fast) var(--ease), box-shadow var(--t-fast);
+}
+
+.logo:hover .logoMark {
+  transform: rotate(15deg) scale(1.05);
+  box-shadow: 0 0 24px var(--a-glow);
+}
+
+.logoName { font-size: 14px; font-weight: 800; letter-spacing: -0.03em; color: var(--t1); }
+.logoAccent { color: var(--a); }
+
+/* ── Desktop links ── */
+.links {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex: 1;
+}
+
+.link {
+  height: 32px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: var(--r-sm);
+  transition: color var(--t-fast), background var(--t-fast);
+}
+
+.link:hover { color: var(--t1); background: var(--srf); }
+.link.active { color: var(--t1); background: var(--srf); }
+
+/* ── Right actions ── */
+.right {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.btnGhost {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--brd);
+  border-radius: var(--r-sm);
+  color: var(--t2);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+}
+
+.btnGhost:hover { color: var(--t1); border-color: var(--brd-hi); background: var(--srf); }
+
+.btnAccent {
+  height: 32px;
+  padding: 0 14px;
+  background: var(--a);
+  border-radius: var(--r-sm);
+  color: var(--a-text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: filter var(--t-fast), transform var(--t-fast), box-shadow var(--t-fast);
+}
+
+.btnAccent:hover {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px var(--a-glow);
+}
+
+/* ── Profile ── */
+.profileWrap { position: relative; }
+
+.profileBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 9px 0 5px;
+  background: var(--srf);
+  border: 1px solid var(--brd);
+  border-radius: var(--r-sm);
+  color: var(--t2);
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+}
+
+.profileBtn:hover,
+.profileBtn.profileOpen {
+  border-color: var(--a-brd);
+  background: var(--a-dim);
+  color: var(--t1);
+}
+
+.avatar {
+  width: 22px; height: 22px;
+  border-radius: 5px;
+  background: var(--a-dim);
+  border: 1px solid var(--a-brd);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--a);
+  flex-shrink: 0;
+}
+
+.profileName { font-size: 12px; font-weight: 600; color: var(--t1); }
+
+/* ── Dropdown ── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 210px;
+  background: var(--bg-2);
+  border: 1px solid var(--brd-hi);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  animation: slideDown 0.16s var(--ease) both;
+}
+
+.dropHead {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--brd);
+  display: flex;
+  gap: 9px;
+  align-items: center;
+}
+
+.dropAvatar {
+  width: 30px; height: 30px;
+  border-radius: 7px;
+  background: var(--a-dim);
+  border: 1px solid var(--a-brd);
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--a);
+  flex-shrink: 0;
+}
+
+.dropName  { font-size: 12px; font-weight: 700; color: var(--t1); margin-bottom: 1px; }
+.dropEmail { font-size: 10px; color: var(--t3); word-break: break-all; }
+.dropItems { padding: 5px; }
+
+.dropItem {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 33px;
+  padding: 0 9px;
+  background: transparent;
+  border-radius: var(--r-xs);
+  color: var(--t2);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.dropItem:hover { background: var(--srf-2); color: var(--t1); }
+.dropDivider { height: 1px; background: var(--brd); margin: 3px 5px; }
+.dropDanger { color: rgba(255,77,106,0.65); }
+.dropDanger:hover { color: var(--error); background: var(--error-bg); }
+
+/* ── Hamburger ── */
+.hamburger {
+  display: none;
+  width: 32px; height: 32px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--brd);
+  border-radius: var(--r-sm);
+  background: var(--srf);
+  margin-left: auto;
+  transition: border-color var(--t-fast);
+}
+
+.hamburger:hover { border-color: var(--brd-hi); }
+
+.hamburger span {
+  display: block;
+  height: 1.5px;
+  background: var(--t2);
+  border-radius: 2px;
+  transition: transform var(--t-mid) var(--ease), opacity var(--t-mid), width var(--t-fast);
+}
+
+.hamburger span:nth-child(1) { width: 15px; }
+.hamburger span:nth-child(2) { width: 11px; }
+.hamburger span:nth-child(3) { width: 15px; }
+
+.hamburgerOpen span:nth-child(1) { width: 15px; transform: rotate(45deg) translateY(5.5px); }
+.hamburgerOpen span:nth-child(2) { opacity: 0; }
+.hamburgerOpen span:nth-child(3) { width: 15px; transform: rotate(-45deg) translateY(-5.5px); }
+
+/* ── Mobile panel ── */
+.mobilePanel {
+  position: fixed;
+  inset: 0;
+  top: var(--navbar-h);
+  background: color-mix(in srgb, var(--bg) 97%, transparent);
+  backdrop-filter: blur(24px);
+  z-index: 800;
+  border-top: 1px solid var(--brd);
+  animation: fadeIn 0.18s var(--ease) both;
+  overflow-y: auto;
+}
+
+.mobilePanelInner {
+  padding: 28px clamp(20px, 4vw, 48px) 48px;
+  max-width: 400px;
+}
+
+.mobileLinks { display: flex; flex-direction: column; gap: 1px; margin-bottom: 20px; }
+
+.mobileLink {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 48px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  color: var(--t2);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: color var(--t-fast), background var(--t-fast);
+  animation: fadeUp 0.3s var(--ease) both;
+}
+
+.mobileLink:hover,
+.mobileLink.active { color: var(--a); background: var(--a-dim); }
+
+.mobileLinkNum {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--t4);
+  letter-spacing: 0.08em;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.mobileDivider { height: 1px; background: var(--brd); margin-bottom: 20px; }
+.mobileActions { display: flex; flex-direction: column; gap: 8px; }
+
+.mobileGhost {
+  display: flex; align-items: center; justify-content: center;
+  height: 44px; padding: 0 16px;
+  border: 1px solid var(--brd);
+  border-radius: var(--r-sm);
+  color: var(--t2);
+  font-family: var(--font-sans);
+  font-size: 14px; font-weight: 700;
+  transition: all var(--t-fast);
+}
+.mobileGhost:hover { color: var(--t1); border-color: var(--brd-hi); }
+
+.mobileAccent {
+  display: flex; align-items: center; justify-content: center;
+  height: 44px; padding: 0 16px;
+  background: var(--a);
+  border-radius: var(--r-sm);
+  color: var(--a-text);
+  font-family: var(--font-sans);
+  font-size: 14px; font-weight: 700;
+  transition: filter var(--t-fast);
+}
+.mobileAccent:hover { filter: brightness(1.1); }
+
+.mobileDanger {
+  display: flex; align-items: center; justify-content: center;
+  height: 44px; padding: 0 16px;
+  color: var(--error);
+  font-family: var(--font-sans);
+  font-size: 14px; font-weight: 700;
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast);
+}
+.mobileDanger:hover { background: var(--error-bg); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .links  { display: none; }
+  .right  { display: none; }
+  .hamburger { display: flex; }
+}
+
+@media (min-width: 769px) {
+  .mobilePanel { display: none; }
+}
+
+/* ─────────────────────────────────────────────────────────
+   ADD THESE RULES TO YOUR EXISTING Navbar.module.css
+   They handle the mock-test contextual mode.
+───────────────────────────────────────────────────────── */
+
+/* Slightly tighter shell height during mock test so it feels more compact */
+.mockTestShell {
+  /* override any landing page transparency — always opaque during test */
+  background: color-mix(in srgb, var(--bg, #0d0d0d) 96%, transparent) !important;
+}
+
+/* ── Context bar (replaces the nav links during active test) ── */
+.testContextBar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 8px;
+  flex-wrap: nowrap;
+}
+
+/* Live pulsing dot inside the LIVE pill */
+.liveDot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  animation: livePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── Progress pill (question counter + mini bar) ── */
+.progressPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  background: var(--bg-1, #111);
+  border: 1px solid var(--brd, rgba(255,255,255,0.08));
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.progressCount {
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-size: 10px;
+  color: var(--a, #a3e635);
+  white-space: nowrap;
+}
+
+.progressTrack {
+  width: 56px;
+  height: 3px;
+  background: var(--brd, rgba(255,255,255,0.08));
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--a, #a3e635);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* When in test mode, right section compresses */
+.testRight {
+  gap: 8px;
+}
+
+/* ── Responsive: hide context pills that overflow on small screens ── */
+@media (max-width: 768px) {
+  .testContextBar {
+    display: none; /* replaced by the left rail on mobile */
+  }
+}

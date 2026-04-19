@@ -1,22 +1,23 @@
 // src/App.jsx
+import { Suspense, lazy } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import { AuthProvider } from "./context/AuthContext";
 
-import Navbar        from "./components/Navbar";
-import Landing       from "./pages/landing";
-import Generate      from "./pages/generate";
-import Login         from "./pages/login";
-import Register      from "./pages/register";
-import Dashboard     from "./pages/Dashboard";
-import RoadmapPage   from "./pages/RoadmapPage";
-import Settings      from "./pages/Settings";
+import Navbar from "./components/Navbar";
 import { KeepAlive } from "./hooks/useKeepAlive";
-
 import { useAuth } from "./context/AuthContext";
-import MockTestPage from "./pages/MockTestPage";
+
+const Landing = lazy(() => import("./pages/Landing"));
+const Generate = lazy(() => import("./pages/Generate"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const RoadmapPage = lazy(() => import("./pages/RoadmapPage"));
+const Settings = lazy(() => import("./pages/Settings"));
+const MockTestPage = lazy(() => import("./pages/MockTestPage"));
 
 /* ── Page transition wrapper ─────────────────────────────────────────────── */
 const pageVariants = {
@@ -49,17 +50,23 @@ function AppRoutes() {
   const location = useLocation();
   return (
     <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/"            element={<PageWrapper><Landing /></PageWrapper>} />
-        <Route path="/login"       element={<PageWrapper><Login /></PageWrapper>} />
-        <Route path="/register"    element={<PageWrapper><Register /></PageWrapper>} />
-        <Route path="/generate"    element={<PrivateRoute><PageWrapper><Generate /></PageWrapper></PrivateRoute>} />
-        <Route path="/dashboard"   element={<PrivateRoute><PageWrapper><Dashboard /></PageWrapper></PrivateRoute>} />
-        <Route path="/roadmap/:id" element={<PrivateRoute><PageWrapper><RoadmapPage /></PageWrapper></PrivateRoute>} />
-        <Route path="/settings"    element={<PrivateRoute><PageWrapper><Settings /></PageWrapper></PrivateRoute>} />
-        <Route path="/mocktest"   element={<PrivateRoute><PageWrapper><MockTestPage /></PageWrapper></PrivateRoute>} />
-        <Route path="*"            element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={(
+        <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)", background: "var(--bg)" }}>
+          Loading...
+        </div>
+      )}>
+        <Routes location={location} key={location.pathname}>
+          <Route path="/"            element={<PageWrapper><Landing /></PageWrapper>} />
+          <Route path="/login"       element={<PageWrapper><Login /></PageWrapper>} />
+          <Route path="/register"    element={<PageWrapper><Register /></PageWrapper>} />
+          <Route path="/generate"    element={<PrivateRoute><PageWrapper><Generate /></PageWrapper></PrivateRoute>} />
+          <Route path="/dashboard"   element={<PrivateRoute><PageWrapper><Dashboard /></PageWrapper></PrivateRoute>} />
+          <Route path="/roadmap/:id" element={<PrivateRoute><PageWrapper><RoadmapPage /></PageWrapper></PrivateRoute>} />
+          <Route path="/settings"    element={<PrivateRoute><PageWrapper><Settings /></PageWrapper></PrivateRoute>} />
+          <Route path="/mocktest"    element={<PrivateRoute><PageWrapper><MockTestPage /></PageWrapper></PrivateRoute>} />
+          <Route path="*"            element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </AnimatePresence>
   );
 }

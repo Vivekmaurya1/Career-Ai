@@ -1,405 +1,563 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import ServerWakeup from "../components/ServerWakeup";
 import { useAuthTheme } from "../context/ThemeContext";
 
-
-export default function Register() {
-  useAuthTheme("amber");
-  const { register } = useAuth();
+export function Register() {
+  const { register, login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  useAuthTheme("amber");
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setError("");
+  const [form,     setForm]     = useState({ name: "", email: "", password: "" });
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState("");
+
+  const pwStrength = form.password.length < 6 ? 26 : form.password.length < 10 ? 62 : 100;
+  const pwColor    = form.password.length < 6 ? "var(--error)" : form.password.length < 10 ? "var(--warn)" : "var(--success)";
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
-    const result = await register(form.name, form.email, form.password);
-    setLoading(false);
-    if (result.success) navigate("/login");
-    else setError(result.message || "Registration failed.");
-  };
+    setError("");
 
-  const passwordStrength = form.password.length < 6 ? 26 : form.password.length < 10 ? 62 : 100;
-  const passwordColor = form.password.length < 6 ? "var(--danger)" : form.password.length < 10 ? "var(--accent)" : "var(--success)";
+    const result = await register(form.name, form.email, form.password);
+    if (result.success) {
+      const loginResult = await login(form.email, form.password);
+      setLoading(false);
+      if (loginResult.success) {
+        navigate("/dashboard");
+        return;
+      }
+      setError(loginResult.message);
+    } else {
+      setLoading(false);
+      setError(result.message);
+    }
+  };
 
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
-        @keyframes authSpin { to { transform: rotate(360deg); } }
-        @keyframes authOrbit { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(-10px, 14px, 0); } }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(18px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.35; }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
 
-        .authy-root {
+        .auth-root {
           min-height: 100vh;
-          padding: calc(var(--navbar-height, 56px) + 40px) 20px 40px;
+          padding: var(--navbar-h) 0 0;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          background: var(--bg);
+          font-family: var(--font-sans);
+          overflow: hidden;
+        }
+
+        /* LEFT */
+        .auth-left {
+          position: relative;
+          background: var(--bg-1);
+          border-right: 1px solid var(--brd);
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: clamp(40px, 5vw, 72px);
+          min-height: calc(100vh - var(--navbar-h));
+          overflow: hidden;
+        }
+
+        .auth-left-dots {
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
+          background-size: 28px 28px;
+          mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+        }
+
+        .auth-left-vline {
+          position: absolute;
+          left: 0; top: 0; bottom: 0;
+          width: 3px;
+          background: linear-gradient(to bottom, transparent 0%, var(--a) 25%, var(--a-glow) 70%, transparent 100%);
+        }
+
+        .auth-left-glow {
+          position: absolute;
+          top: -100px; left: -100px;
+          width: 400px; height: 400px;
+          border-radius: 50%;
+          background: radial-gradient(circle, var(--a-glow) 0%, transparent 70%);
+          pointer-events: none;
+          filter: blur(40px);
+        }
+
+        .auth-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-family: var(--font-mono);
+          font-size: 10px;
+          letter-spacing: 0.2em;
+          text-transform: uppercase;
+          color: var(--a);
+          border: 1px solid var(--a-brd);
+          background: var(--a-dim);
+          padding: 6px 13px;
+          border-radius: var(--r-sm);
+          margin-bottom: 32px;
+        }
+
+        .auth-tag-dot {
+          width: 5px; height: 5px;
+          border-radius: 50%;
+          background: var(--a);
+          animation: blink 2s ease-in-out infinite;
+        }
+
+        .auth-headline {
+          font-size: clamp(3rem, 4.5vw, 5rem);
+          font-weight: 900;
+          letter-spacing: -0.055em;
+          line-height: 0.91;
+          color: var(--t1);
+          margin-bottom: 22px;
+        }
+
+        .auth-headline-em {
+          color: var(--a);
+          text-shadow: 0 0 40px var(--a-glow);
+        }
+
+        .auth-sub {
+          font-size: clamp(14px, 1.2vw, 15px);
+          color: var(--t2);
+          line-height: 1.75;
+          max-width: 340px;
+          font-weight: 400;
+        }
+
+        .auth-checks {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+          margin-top: 36px;
+        }
+
+        .auth-check {
+          display: flex;
+          align-items: flex-start;
+          gap: 13px;
+        }
+
+        .auth-check-icon {
+          width: 20px; height: 20px;
+          border-radius: 2px;
+          border: 1px solid var(--a-brd);
+          background: var(--a-dim);
+          display: grid;
+          place-items: center;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+
+        .auth-check-text {
+          font-size: 13px;
+          color: var(--t2);
+          line-height: 1.65;
+          font-weight: 400;
+        }
+
+        .auth-stats {
+          display: flex;
+          gap: 0;
+          border: 1px solid var(--brd);
+          border-radius: var(--r-md);
+          overflow: hidden;
+          margin-top: 48px;
+        }
+
+        .auth-stat {
+          flex: 1;
+          padding: 14px 18px;
+          border-right: 1px solid var(--brd);
+        }
+
+        .auth-stat:last-child { border-right: none; }
+
+        .auth-stat-val {
+          font-size: 1.5rem;
+          font-weight: 900;
+          letter-spacing: -0.04em;
+          color: var(--t1);
+          line-height: 1;
+          margin-bottom: 4px;
+        }
+
+        .auth-stat-label {
+          font-family: var(--font-mono);
+          font-size: 9px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--t4);
+        }
+
+        /* RIGHT */
+        .auth-right {
           display: flex;
           align-items: center;
           justify-content: center;
+          padding: clamp(32px, 4vw, 64px) clamp(24px, 4vw, 72px);
+          min-height: calc(100vh - var(--navbar-h));
           position: relative;
-          overflow: hidden;
-          background:
-            radial-gradient(circle at 15% 10%, var(--accent-dim), transparent 30%),
-            radial-gradient(circle at 85% 18%, rgba(110, 231, 183, 0.14), transparent 24%),
-            linear-gradient(180deg, var(--bg) 0%, var(--bg-surface) 100%);
-          font-family: 'Manrope', sans-serif;
         }
 
-        .authy-grid {
-          position: absolute;
-          inset: 0;
-          opacity: var(--grid-opacity, 0.02);
-          pointer-events: none;
-          background-image:
-            linear-gradient(var(--grid-color) 1px, transparent 1px),
-            linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-          background-size: 72px 72px;
-          mask-image: linear-gradient(180deg, rgba(0,0,0,0.72), transparent 95%);
+        .auth-form-wrap {
+          width: 100%;
+          max-width: 400px;
         }
 
-        .authy-orb {
-          position: absolute;
-          width: 320px;
-          height: 320px;
-          border-radius: 50%;
-          background: radial-gradient(circle, rgba(52, 211, 153, 0.14), transparent 70%);
-          left: 10%;
-          bottom: 12%;
-          filter: blur(6px);
-          animation: authOrbit 9s ease-in-out infinite;
-          pointer-events: none;
-        }
-
-        .authy-shell {
-          position: relative;
-          z-index: 1;
-          width: min(100%, 1080px);
-          display: grid;
-          grid-template-columns: minmax(320px, 0.8fr) minmax(0, 0.96fr);
-          border-radius: 32px;
-          overflow: hidden;
-          border: 1px solid var(--accent-border);
-          background: rgba(8, 19, 36, 0.76);
-          box-shadow: 0 28px 80px rgba(2, 8, 23, 0.34);
-          backdrop-filter: blur(20px);
-        }
-
-        .authy-panel {
-          padding: 42px 36px;
-        }
-
-        .authy-side {
-          padding: 46px;
-          border-left: 1px solid rgba(255,255,255,0.06);
-          background:
-            radial-gradient(circle at top right, rgba(125, 211, 252, 0.12), transparent 26%),
-            linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-        }
-
-        .authy-chip {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          min-height: 34px;
-          padding: 0 14px;
-          border-radius: 999px;
-          border: 1px solid rgba(52, 211, 153, 0.24);
-          background: rgba(52, 211, 153, 0.1);
-          color: var(--success);
-          font-size: 0.78rem;
-          font-weight: 700;
-          letter-spacing: 0.12em;
+        .auth-form-eyebrow {
+          font-family: var(--font-mono);
+          font-size: 10px;
+          letter-spacing: 0.2em;
           text-transform: uppercase;
-        }
-
-        .authy-chip::before {
-          content: "";
-          width: 8px;
-          height: 8px;
-          border-radius: 999px;
-          background: var(--success);
-          box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.1);
-        }
-
-        .authy-title {
-          margin-top: 24px;
-          color: var(--text-heading);
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: clamp(2.3rem, 4.6vw, 4.4rem);
-          line-height: 0.96;
-          letter-spacing: -0.05em;
-        }
-
-        .authy-title span {
-          background: linear-gradient(135deg, var(--accent), var(--success), var(--accent-bright));
-          -webkit-background-clip: text;
-          background-clip: text;
-          color: transparent;
-        }
-
-        .authy-copy {
-          margin-top: 18px;
-          color: var(--text-muted);
-          line-height: 1.8;
-          max-width: 420px;
-        }
-
-        .authy-list {
-          margin-top: 28px;
-          display: grid;
-          gap: 14px;
-        }
-
-        .authy-list-item {
+          color: var(--t4);
+          margin-bottom: 14px;
           display: flex;
           align-items: center;
           gap: 12px;
-          color: var(--text-muted);
         }
 
-        .authy-list-item::before {
-          content: "";
-          width: 10px;
-          height: 10px;
-          border-radius: 999px;
-          background: linear-gradient(135deg, var(--accent), var(--success));
-          box-shadow: 0 0 0 5px var(--accent-dim);
-          flex-shrink: 0;
-        }
-
-        .authy-heading {
-          color: var(--text-heading);
-          font-family: 'Space Grotesk', sans-serif;
-          font-size: 2rem;
-          letter-spacing: -0.04em;
-        }
-
-        .authy-sub {
-          margin-top: 10px;
-          color: var(--text-muted);
-          line-height: 1.7;
-        }
-
-        .authy-error {
-          margin-top: 22px;
-          padding: 14px 16px;
-          border-radius: 18px;
-          border: 1px solid var(--danger-border);
-          background: var(--danger-bg);
-          color: var(--danger);
-          font-size: 0.92rem;
-        }
-
-        .authy-form {
-          margin-top: 24px;
-          display: grid;
-          gap: 18px;
-        }
-
-        .authy-label {
+        .auth-form-eyebrow::before {
+          content: '';
           display: block;
-          margin-bottom: 9px;
-          color: var(--text-dim);
-          font-size: 0.76rem;
-          font-weight: 700;
-          letter-spacing: 0.12em;
+          width: 24px; height: 1px;
+          background: var(--a);
+        }
+
+        .auth-form-title {
+          font-size: clamp(1.9rem, 3vw, 2.5rem);
+          font-weight: 900;
+          letter-spacing: -0.045em;
+          color: var(--t1);
+          line-height: 1;
+          margin-bottom: 8px;
+        }
+
+        .auth-form-sub {
+          font-size: 13px;
+          color: var(--t3);
+          line-height: 1.65;
+          margin-bottom: 34px;
+          font-weight: 400;
+        }
+
+        .auth-error {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 15px;
+          border: 1px solid var(--error-brd);
+          border-left: 3px solid var(--error);
+          border-radius: var(--r-md);
+          background: var(--error-bg);
+          color: var(--error);
+          font-size: 13px;
+          margin-bottom: 22px;
+        }
+
+        .auth-fields {
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+          margin-bottom: 26px;
+        }
+
+        .auth-field-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 8px;
+        }
+
+        .auth-label {
+          font-family: var(--font-mono);
+          font-size: 9px;
+          letter-spacing: 0.18em;
           text-transform: uppercase;
+          color: var(--t4);
+          transition: color var(--t-fast);
         }
 
-        .authy-input {
+        .auth-label.active { color: var(--a); }
+
+        .auth-input-wrap { position: relative; }
+
+        .auth-input {
           width: 100%;
-          min-height: 56px;
-          padding: 0 18px;
-          border-radius: 18px;
-          border: 1px solid var(--input-border);
-          background: var(--input-bg);
-          color: var(--text);
-          font: inherit;
+          height: 50px;
+          padding: 0 16px;
+          background: var(--bg-2);
+          border: 1px solid var(--brd);
+          border-radius: var(--r-md);
+          color: var(--t1);
+          font-family: var(--font-sans);
+          font-size: 14px;
           outline: none;
-          transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+          transition: border-color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
         }
 
-        .authy-input:focus {
-          border-color: var(--border-focus);
-          background: var(--input-focus-bg);
-          box-shadow: var(--input-focus-shadow);
+        .auth-input::placeholder { color: var(--t4); }
+        .auth-input:hover { border-color: var(--brd-hi); }
+
+        .auth-input:focus {
+          border-color: var(--a-brd);
+          background: var(--a-dim);
+          box-shadow: 0 0 0 3px var(--a-glow);
         }
 
-        .authy-input::placeholder {
-          color: var(--text-faint);
+        .auth-input-line {
+          position: absolute;
+          bottom: -1px; left: 0;
+          height: 2px;
+          background: var(--a);
+          border-radius: 0 0 var(--r-md) var(--r-md);
+          width: 0;
+          transition: width 0.24s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        .authy-strength {
-          margin-top: 9px;
-          height: 8px;
-          border-radius: 999px;
-          background: rgba(255,255,255,0.06);
-          overflow: hidden;
+        .auth-input:focus ~ .auth-input-line {
+          width: 100%;
         }
 
-        .authy-strength-fill {
-          height: 100%;
-          border-radius: 999px;
-          transition: width 180ms ease, background 180ms ease;
-        }
-
-        .authy-submit {
-          min-height: 56px;
-          border: 0;
-          border-radius: 18px;
-          background: linear-gradient(135deg, var(--accent), var(--success));
-          color: #06111d;
-          font: inherit;
-          font-weight: 800;
+        .auth-submit {
+          width: 100%;
+          height: 52px;
+          background: var(--a);
+          color: var(--a-text);
+          font-family: var(--font-sans);
+          font-size: 14px;
+          font-weight: 900;
+          letter-spacing: 0.01em;
+          border: none;
+          border-radius: var(--r-md);
           cursor: pointer;
-          display: inline-flex;
+          display: flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
-          transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+          transition: all var(--t-fast);
+          margin-bottom: 18px;
         }
 
-        .authy-submit:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 18px 46px var(--accent-glow);
-          filter: brightness(1.03);
+        .auth-submit:hover:not(:disabled) {
+          filter: brightness(1.1);
+          transform: translateY(-1px);
+          box-shadow: 0 10px 28px var(--a-glow);
         }
 
-        .authy-submit:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
+        .auth-submit:disabled { opacity: 0.65; cursor: not-allowed; }
+
+        .auth-spinner {
+          width: 14px; height: 14px;
+          border: 2px solid rgba(0,0,0,0.2);
+          border-top-color: var(--a-text);
+          border-radius: 50%;
+          animation: spin 0.65s linear infinite;
         }
 
-        .authy-spin {
-          width: 15px;
-          height: 15px;
-          border-radius: 999px;
-          border: 2px solid rgba(6, 17, 29, 0.3);
-          border-top-color: #06111d;
-          animation: authSpin 0.7s linear infinite;
+        .auth-divider {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 18px;
         }
 
-        .authy-footer {
-          margin-top: 18px;
-          color: var(--text-dim);
-          font-size: 0.92rem;
+        .auth-divider-line {
+          flex: 1; height: 1px;
+          background: var(--brd);
         }
 
-        .authy-link {
-          color: var(--accent);
+        .auth-divider-text {
+          font-family: var(--font-mono);
+          font-size: 10px;
+          letter-spacing: 0.12em;
+          color: var(--t4);
+        }
+
+        .auth-footer {
+          text-align: center;
+          font-size: 13px;
+          color: var(--t3);
+        }
+
+        .auth-footer-link {
+          background: none;
+          border: none;
+          color: var(--a);
+          font-size: 13px;
           font-weight: 700;
-          text-decoration: none;
+          cursor: pointer;
+          padding: 0;
+          font-family: var(--font-sans);
+          transition: opacity var(--t-fast);
         }
 
-        @media (max-width: 920px) {
-          .authy-shell {
-            grid-template-columns: 1fr;
-          }
+        .auth-footer-link:hover { opacity: 0.8; }
 
-          .authy-side {
-            border-left: 0;
-            border-top: 1px solid rgba(255,255,255,0.06);
-          }
+        .auth-security {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          justify-content: center;
+          margin-top: 18px;
+          font-family: var(--font-mono);
+          font-size: 9px;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          color: var(--t4);
+          opacity: 0.6;
         }
 
-        @media (max-width: 640px) {
-          .authy-panel,
-          .authy-side {
-            padding: 28px 22px;
-          }
+        @media (max-width: 860px) {
+          .auth-root { grid-template-columns: 1fr; }
+          .auth-left { min-height: auto; padding: 40px 24px; }
+          .auth-right { min-height: auto; padding: 40px 24px; }
+          .auth-stats { display: none; }
         }
       `}</style>
 
-      <ServerWakeup />
+      <div className="auth-root" style={{ gridTemplateColumns: "1fr 1fr" }}>
 
-      <div className="authy-root">
-        <div className="authy-grid" />
-        <div className="authy-orb" />
+        {/* LEFT — form */}
+        <div className="auth-right" style={{ borderRight: "1px solid var(--brd)", animation: "fadeUp 0.45s ease both" }}>
+          <div className="auth-form-wrap">
+            <div style={{ fontSize: "clamp(1.8rem, 3vw, 2.4rem)", fontWeight: 900, letterSpacing: "-0.04em", color: "var(--t1)", marginBottom: 8 }}>
+              Create account
+            </div>
+            <div style={{ fontSize: 13, color: "var(--t3)", marginBottom: 28, fontWeight: 400 }}>
+              Start building your personalized career roadmap today.
+            </div>
 
-        <motion.div
-          className="authy-shell"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
-        >
-          <div className="authy-panel">
-            <div className="authy-heading">Create account</div>
-            <div className="authy-sub">Start with a cleaner workspace, better theme combinations, and a roadmap experience that feels much more polished.</div>
-
-            {error && <div className="authy-error">{error}</div>}
-
-            <form className="authy-form" onSubmit={handleSubmit}>
-              <div>
-                <label className="authy-label">Full name</label>
-                <input
-                  className="authy-input"
-                  type="text"
-                  placeholder="Your full name"
-                  value={form.name}
-                  onChange={(event) => setForm({ ...form, name: event.target.value })}
-                  required
-                />
+            {error && (
+              <div className="auth-error">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style={{ flexShrink: 0 }}>
+                  <circle cx="7" cy="7" r="6" stroke="currentColor" strokeWidth="1.4" />
+                  <path d="M7 4.5V7.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  <circle cx="7" cy="9.5" r="0.75" fill="currentColor" />
+                </svg>
+                {error}
               </div>
+            )}
 
-              <div>
-                <label className="authy-label">Email</label>
-                <input
-                  className="authy-input"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  onChange={(event) => setForm({ ...form, email: event.target.value })}
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="authy-label">Password</label>
-                <input
-                  className="authy-input"
-                  type="password"
-                  placeholder="At least 8 characters"
-                  value={form.password}
-                  onChange={(event) => setForm({ ...form, password: event.target.value })}
-                  required
-                />
-                {form.password && (
-                  <div className="authy-strength">
-                    <div className="authy-strength-fill" style={{ width: `${passwordStrength}%`, background: passwordColor }} />
+            <form onSubmit={handleSubmit}>
+              <div className="auth-fields">
+                {[
+                  { key: "name",     type: "text",     label: "Full name",      placeholder: "Your full name"    },
+                  { key: "email",    type: "email",    label: "Email",           placeholder: "you@example.com"  },
+                  { key: "password", type: "password", label: "Password",        placeholder: "At least 8 chars" },
+                ].map(f => (
+                  <div key={f.key}>
+                    <div className="auth-field-header">
+                      <label className="auth-label">{f.label}</label>
+                    </div>
+                    <div className="auth-input-wrap">
+                      <input
+                        className="auth-input"
+                        type={f.type}
+                        placeholder={f.placeholder}
+                        value={form[f.key]}
+                        onChange={e => setForm(p => ({ ...p, [f.key]: e.target.value }))}
+                        required
+                      />
+                      <div className="auth-input-line" />
+                    </div>
+                    {f.key === "password" && form.password && (
+                      <div style={{ marginTop: 6, height: 3, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${pwStrength}%`, background: pwColor, transition: "width 0.3s, background 0.3s", borderRadius: 2 }} />
+                      </div>
+                    )}
                   </div>
-                )}
+                ))}
               </div>
 
-              <button className="authy-submit" type="submit" disabled={loading}>
-                {loading ? <><span className="authy-spin" /> Creating account...</> : "Create your account"}
+              <button className="auth-submit" type="submit" disabled={loading}>
+                {loading
+                  ? <><span className="auth-spinner" /> Creating account…</>
+                  : "Create your account"
+                }
               </button>
             </form>
 
-            <div className="authy-footer">
-              Already have an account? <Link to="/login" className="authy-link">Sign in</Link>
+            <div className="auth-footer">
+              Already have an account?{" "}
+              <button className="auth-footer-link" type="button" onClick={() => navigate("/login")}>
+                Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT — marketing */}
+        <div className="auth-left" style={{ animation: "fadeUp 0.45s ease 0.08s both" }}>
+          <div className="auth-left-dots" />
+          <div className="auth-left-vline" />
+          <div className="auth-left-glow" />
+
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div className="auth-tag">
+              <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)", display: "inline-block", animation: "blink 2s ease-in-out infinite" }} />
+              New workspace
+            </div>
+
+            <h2 className="auth-headline" style={{ fontSize: "clamp(2.4rem, 4vw, 4.4rem)" }}>
+              Build a more<br /><span className="auth-headline-em">focused</span> career plan
+            </h2>
+
+            <p className="auth-sub" style={{ marginTop: 18 }}>
+              Register once and keep everything in one place: themes, roadmap progress, upcoming milestones, and the next best step for your target role.
+            </p>
+
+            <div className="auth-checks" style={{ marginTop: 32 }}>
+              {[
+                "Personalised sequence for your target role",
+                "Project milestones at every phase",
+                "Interview prep built into the end",
+              ].map(text => (
+                <div key={text} className="auth-check">
+                  <div className="auth-check-icon">
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M2 5l2.5 2.5L8 3" stroke="var(--a)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                  <span className="auth-check-text">{text}</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="authy-side">
-            <div className="authy-chip">New workspace</div>
-            <div className="authy-title">
-              Build a more <span>focused</span> career plan
-            </div>
-            <div className="authy-copy">
-              Register once and keep everything in one place: themes, roadmap progress, upcoming milestones, and the next best step for your target role.
-            </div>
-            <div className="authy-list">
-              <div className="authy-list-item">More professional theme combinations across the app</div>
-              <div className="authy-list-item">Smoother auth and navigation interactions</div>
-              <div className="authy-list-item">Cleaner visual hierarchy on every screen you touch</div>
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div className="auth-stats">
+              {[["12k+", "Roadmaps built"], ["94%", "Interview rate"], ["≤30s", "First plan"]].map(([v, l]) => (
+                <div key={l} className="auth-stat">
+                  <div className="auth-stat-val">{v}</div>
+                  <div className="auth-stat-label">{l}</div>
+                </div>
+              ))}
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </>
   );
 }
+
+export default Register;

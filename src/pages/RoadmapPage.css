@@ -1,0 +1,542 @@
+/* ═══════════════════════════════════════════════════════════════
+   RoadmapPage.css — All styling for the Roadmap component
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ── Keyframes ─────────────────────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes terminal-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ── Root ──────────────────────────────────────────────────────── */
+.rp-root {
+  min-height: 100vh;
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 68% 44% at 6% 0%, var(--a-dim) 0%, transparent 58%),
+    radial-gradient(ellipse 50% 36% at 94% 100%, var(--a-dim) 0%, transparent 55%);
+  font-family: 'DM Sans', sans-serif;
+  color: var(--t1);
+  padding: calc(var(--navbar-height, 56px) + 6px) 0 100px;
+}
+
+.rp-grid-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+  background-image:
+    linear-gradient(var(--grid-color, rgba(255,255,255,0.018)) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-color, rgba(255,255,255,0.018)) 1px, transparent 1px);
+  background-size: 68px 68px;
+}
+
+.rp-page {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 32px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Topbar ────────────────────────────────────────────────────── */
+.rp-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 14px 20px;
+  background: var(--srf);
+  border: 1px solid var(--brd);
+  border-radius: 20px;
+  backdrop-filter: blur(16px);
+}
+
+.rp-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.rp-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Menu Button ───────────────────────────────────────────────── */
+.rp-menu-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: var(--bg-1);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.rp-menu-btn:hover {
+  border-color: rgba(167, 139, 250, 0.35);
+  background: rgba(167, 139, 250, 0.09);
+}
+
+.rp-menu-btn span {
+  display: block;
+  height: 1.5px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 1px;
+  transition: all 0.2s ease;
+}
+
+.rp-menu-btn span:nth-child(1) { width: 18px; }
+.rp-menu-btn span:nth-child(2) { width: 18px; }
+.rp-menu-btn span:nth-child(3) { width: 11px; }
+
+.rp-menu-btn:hover span {
+  background: #c4b8ff;
+}
+
+/* ── Title Block ───────────────────────────────────────────────── */
+.rp-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* ── Tab Pills ─────────────────────────────────────────────────── */
+.rp-tab-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rp-tab-pill {
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--brd);
+  background: var(--bg-1);
+  color: var(--t3);
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.rp-tab-pill:hover {
+  color: rgba(255, 255, 255, 0.65);
+  border-color: rgba(255, 255, 255, 0.13);
+}
+
+.rp-tab-pill.active {
+  border-color: rgba(167, 139, 250, 0.32);
+  background: linear-gradient(135deg, rgba(167, 139, 250, 0.13), var(--info-bg));
+  color: #d0c8ff;
+  box-shadow: 0 2px 12px rgba(167, 139, 250, 0.12);
+}
+
+.rp-pill-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+/* ── Progress Chip ─────────────────────────────────────────────── */
+.rp-progress-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--brd);
+  background: var(--srf);
+  font-family: 'DM Mono', monospace;
+  font-size: 10px;
+  color: var(--t3);
+}
+
+/* ── Card ──────────────────────────────────────────────────────── */
+.rp-card {
+  border: 1px solid var(--brd);
+  border-radius: 26px;
+  background: var(--srf);
+  backdrop-filter: blur(20px);
+  overflow: hidden;
+}
+
+.rp-card-body {
+  padding: 32px 36px 48px;
+}
+
+/* ── Section Title ─────────────────────────────────────────────── */
+.section-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--t1);
+  letter-spacing: -0.01em;
+  margin-bottom: 6px;
+}
+
+.section-sub {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--t3);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+/* ── Journey Wrap ──────────────────────────────────────────────── */
+.rp-journey-wrap {
+  display: grid;
+  gap: 30px;
+}
+
+.rp-journey-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.rp-phase-summary {
+  padding: 16px 18px;
+  border-radius: 16px;
+  border: 1px solid var(--phase-border);
+  background: var(--srf);
+}
+
+.rp-phase-summary-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--phase-accent);
+  margin-bottom: 8px;
+}
+
+.rp-phase-summary strong {
+  display: block;
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  line-height: 1.2;
+  color: var(--t1);
+  margin-bottom: 6px;
+}
+
+.rp-phase-summary span {
+  display: block;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.42);
+}
+
+.rp-phase-summary-bar {
+  height: 4px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.rp-phase-summary-bar div {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Journey Track ─────────────────────────────────────────────── */
+.rp-journey-track {
+  position: relative;
+  padding: 34px 0 20px;
+  border-radius: 24px;
+  border: 1px solid var(--brd);
+  background: var(--bg-1);
+  overflow: hidden;
+}
+
+.rp-track-line {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  top: 50%;
+  height: 2px;
+  transform: translateY(-1px);
+  background: linear-gradient(90deg, var(--info-border), var(--a-brd), var(--warning-border));
+  pointer-events: none;
+}
+
+.rp-track-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 8px 0;
+  scroll-behavior: smooth;
+}
+
+.rp-track-scroll::-webkit-scrollbar {
+  height: 6px;
+}
+
+.rp-track-scroll::-webkit-scrollbar-thumb {
+  background: var(--brd);
+  border-radius: 999px;
+}
+
+.rp-track-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.rp-track-row {
+  min-width: max-content;
+  padding: 0 38px;
+  display: flex;
+  align-items: center;
+  gap: 34px;
+}
+
+.rp-track-node {
+  position: relative;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.rp-track-node.upper {
+  padding-bottom: 170px;
+}
+
+.rp-track-node.lower {
+  padding-top: 170px;
+  flex-direction: column-reverse;
+}
+
+.rp-track-node-anchor {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+.rp-track-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+
+.rp-track-dot span {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--node-accent);
+  box-shadow: 0 0 0 5px rgba(8, 6, 15, 0.98), 0 0 0 7px var(--node-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.rp-track-node.active .rp-track-dot span {
+  transform: scale(1.16);
+}
+
+.rp-track-node.done .rp-track-dot span {
+  box-shadow: 0 0 0 5px rgba(8, 6, 15, 0.98), 0 0 0 7px var(--success-border);
+}
+
+.rp-track-node.locked .rp-track-dot {
+  cursor: not-allowed;
+}
+
+.rp-track-node.locked .rp-track-dot span {
+  opacity: 0.45;
+}
+
+/* ── Track Card ────────────────────────────────────────────────── */
+.rp-track-card {
+  width: 100%;
+  min-height: 132px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--brd);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  transition: transform 0.2s ease, border-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rp-track-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--node-border);
+}
+
+.rp-track-node.active .rp-track-card {
+  border-color: var(--node-border);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.3);
+}
+
+.rp-track-node.locked .rp-track-card {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.rp-track-node.locked .rp-track-card:hover {
+  transform: none;
+}
+
+.rp-track-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rp-track-phase {
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--node-accent);
+}
+
+.rp-track-state {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--t3);
+  font-family: 'DM Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.rp-track-state.done {
+  color: var(--success);
+  background: var(--success-bg);
+}
+
+.rp-track-state.locked {
+  color: rgba(255, 255, 255, 0.24);
+}
+
+.rp-track-title {
+  margin: 14px 0 10px;
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--t1);
+}
+
+.rp-track-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--t3);
+  line-height: 1.4;
+}
+
+.rp-track-lock {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--t3);
+  font-size: 11px;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .rp-page {
+    padding: 0 16px;
+  }
+
+  .rp-tab-pills {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .rp-card-body {
+    padding: 20px 18px 32px;
+  }
+
+  .rp-topbar {
+    flex-wrap: wrap;
+  }
+
+  .rp-track-line {
+    left: 18px;
+    right: 18px;
+  }
+
+  .rp-track-row {
+    padding: 0 18px;
+    gap: 22px;
+  }
+
+  .rp-track-node {
+    width: 220px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rp-root {
+    padding: calc(var(--navbar-height, 56px) + 6px) 0 60px;
+  }
+
+  .rp-page {
+    padding: 0 12px;
+  }
+
+  .rp-card-body {
+    padding: 16px 14px 24px;
+  }
+
+  .rp-topbar {
+    padding: 10px 14px;
+  }
+
+  .rp-track-node {
+    width: 160px;
+  }
+
+  .rp-track-card {
+    min-height: 100px;
+    padding: 12px;
+  }
+}

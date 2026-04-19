@@ -1,43 +1,45 @@
 // pages/RoadmapPage.jsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, memo } from "react";
 import { getRoadmapById, saveProgress, getProgress } from "../api/roadmapApi";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   normalizeRoadmap, loadLocalProgress, saveLocalProgress, calcOverallPercent,
 } from "../utils/roadmap";
 import { ROADMAP_TABS, PHASE_COLORS } from "../constants";
+import { LEVEL_COLORS, COMMON_TRANSITIONS } from "../constants/roadmapConstants";
+import "./RoadmapPage.css";
 
 // ─── Checkbox ─────────────────────────────────────────────────────────────────
-function Checkbox({ checked, onChange, size = 16 }) {
+const Checkbox = memo(function Checkbox({ checked, onChange, size = 16 }) {
   return (
     <button
       onClick={(e) => { e.stopPropagation(); onChange(!checked); }}
       title={checked ? "Mark incomplete" : "Mark done"}
       style={{
         width: size, height: size, flexShrink: 0,
-        border: `1.5px solid ${checked ? "#4ade80" : "var(--text-faint)"}`,
+        border: `1.5px solid ${checked ? "var(--success-border)" : "rgba(255,255,255,0.3)"}`,
         borderRadius: 4,
-        background: checked ? "rgba(74,222,128,0.12)" : "var(--bg-raised)",
+        background: checked ? "var(--success-bg)" : "var(--bg-1)",
         cursor: "pointer", display: "flex", alignItems: "center",
-        justifyContent: "center", transition: "all 0.15s", padding: 0,
+        justifyContent: "center", transition: COMMON_TRANSITIONS.fast, padding: 0,
       }}
     >
       {checked && (
         <svg width={size * 0.58} height={size * 0.58} viewBox="0 0 10 10" fill="none">
-          <path d="M1.5 5L4 7.5L8.5 2.5" stroke="#4ade80" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M1.5 5L4 7.5L8.5 2.5" stroke="var(--success)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       )}
     </button>
   );
-}
+});
 
 // ─── ProgressRing ─────────────────────────────────────────────────────────────
-function ProgressRing({ pct, size = 72 }) {
+const ProgressRing = memo(function ProgressRing({ pct, size = 72 }) {
   const r = size / 2 - 5;
   const circ = 2 * Math.PI * r;
-  const color = pct >= 100 ? "#4ade80" : pct >= 60 ? "var(--accent)" : pct >= 30 ? "#60a5fa" : "var(--text-faint)";
+  const color = pct >= 100 ? "var(--success)" : pct >= 60 ? "var(--a)" : pct >= 30 ? "var(--info)" : "var(--t3)";
   return (
     <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
       <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
@@ -48,14 +50,14 @@ function ProgressRing({ pct, size = 72 }) {
       </svg>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
         <span style={{ fontFamily: "'DM Mono',monospace", fontSize: size * 0.22, fontWeight: 600, color, lineHeight: 1 }}>{pct}</span>
-        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: size * 0.1, color: "var(--text-dim)", letterSpacing: "0.08em" }}>%</span>
+        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: size * 0.1, color: "var(--t3)", letterSpacing: "0.08em" }}>%</span>
       </div>
     </div>
   );
-}
+});
 
 // ─── TopicDetailPanel (rich detail view with sidebar) ─────────────────────────
-function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) {
+const TopicDetailPanel = memo(function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) {
   const key  = `phase-${node.phaseIdx}-topic-${node.topicIdx}`;
   const done = !!progress[key];
   const [activeSection, setActiveSection] = useState(null);
@@ -65,8 +67,8 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
       id: "overview",
       label: "Overview",
       icon: "◈",
-      color: "#f5f3ff",
-      accent: "var(--accent-bright)",
+      color: "var(--a)",
+      accent: "var(--a)",
       items: [node.topic.topic_name || `Topic ${node.topicIdx + 1}`],
       description: node.topic.description || null,
     },
@@ -74,32 +76,32 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
       id: "subtopics",
       label: "Subtopics",
       icon: "◎",
-      color: "#60a5fa",
-      accent: "#93c5fd",
+      color: "var(--info)",
+      accent: "var(--info)",
       items: node.topic.subtopics || [],
     },
     {
       id: "concepts",
       label: "Concepts to Master",
       icon: "⬡",
-      color: "var(--accent)",
-      accent: "var(--accent-bright)",
+      color: "var(--a)",
+      accent: "var(--a)",
       items: node.topic.concepts_to_master || [],
     },
     {
       id: "practice",
       label: "Practice",
       icon: "◉",
-      color: "#fb923c",
-      accent: "#fdba74",
+      color: "var(--warning)",
+      accent: "var(--warning-border)",
       items: node.topic.recommended_practice || [],
     },
     ...(node.topic.mini_project ? [{
       id: "project",
       label: "Mini Project",
       icon: "★",
-      color: "#4ade80",
-      accent: "#86efac",
+      color: "var(--success)",
+      accent: "var(--success-border)",
       items: [typeof node.topic.mini_project === "string"
         ? node.topic.mini_project
         : node.topic.mini_project?.title].filter(Boolean),
@@ -120,6 +122,13 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
     return () => window.removeEventListener("keydown", h);
   }, [onClose]);
 
+  const handleSectionClick = useCallback((secId) => {
+    setActiveSection(activeSection === secId ? null : secId);
+    setTimeout(() => {
+      document.getElementById(`section-${secId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }, [activeSection]);
+
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const tx = originRect ? originRect.left + originRect.width / 2 - vw / 2 : 0;
@@ -133,6 +142,7 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
         animate={{ opacity: 1, scale: 1, x: 0, y: 0, borderRadius: 0 }}
         exit={{ opacity: 0, scale: 0.94, x: tx, y: ty, borderRadius: 24 }}
         transition={{ duration: 0.38, ease: [0.32, 0.72, 0, 1] }}
+        onClick={onClose}
         style={{
           position: "fixed", inset: 0, zIndex: 2000,
           background: "var(--bg)",
@@ -144,7 +154,7 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
           position: "absolute", inset: 0, pointerEvents: "none",
           background:
             "radial-gradient(ellipse 55% 45% at 5% 0%, rgba(90,62,180,0.16) 0%, transparent 60%), " +
-            "radial-gradient(ellipse 40% 35% at 95% 100%, rgba(96,165,250,0.07) 0%, transparent 55%)",
+            "radial-gradient(ellipse 40% 35% at 95% 100%, var(--info-bg) 0%, transparent 55%)",
         }}/>
         {/* Grid */}
         <div style={{
@@ -160,8 +170,9 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15, duration: 0.28 }}
+          onClick={(e) => e.stopPropagation()}
           style={{
-            flexShrink: 0, position: "relative", zIndex: 10,
+            flexShrink: 0, position: "sticky", top: 0, zIndex: 10,
             display: "flex", alignItems: "center", justifyContent: "space-between",
             padding: "14px 28px",
             borderBottom: "1px solid var(--border)",
@@ -181,7 +192,7 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
                 fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.12em",
                 transition: "all 0.18s",
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-border)"; e.currentTarget.style.color = "var(--accent-bright)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--a)"; e.currentTarget.style.color = "var(--accent-bright)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "var(--bg-raised)"; }}
             >
               <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
@@ -191,14 +202,14 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
             </button>
 
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.2em", color: "var(--text-faint)", textTransform: "uppercase" }}>
+              <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.2em", color: "var(--t3)", textTransform: "uppercase" }}>
                 Phase {String(node.phaseIdx + 1).padStart(2,"0")}
               </span>
-              <span style={{ color: "var(--text-faint)", fontSize: 10 }}>›</span>
+              <span style={{ color: "var(--t3)", fontSize: 10 }}>›</span>
               <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.2em", color: node.color.accent, textTransform: "uppercase" }}>
                 Topic {String(node.topicIdx + 1).padStart(2,"0")}
               </span>
-              <span style={{ color: "var(--text-faint)", fontSize: 10 }}>›</span>
+              <span style={{ color: "var(--t3)", fontSize: 10 }}>›</span>
               <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", color: "var(--text-dim)", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {node.topic.topic_name || `Topic ${node.topicIdx + 1}`}
               </span>
@@ -209,9 +220,9 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
             {/* Stats pills */}
             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
               {[
-                { label: "Subtopics", count: node.topic.subtopics?.length || 0, color: "#60a5fa" },
+                { label: "Subtopics", count: node.topic.subtopics?.length || 0, color: "var(--info)" },
                 { label: "Concepts", count: node.topic.concepts_to_master?.length || 0, color: "var(--accent)" },
-                { label: "Practice", count: node.topic.recommended_practice?.length || 0, color: "#fb923c" },
+                { label: "Practice", count: node.topic.recommended_practice?.length || 0, color: "var(--warning)" },
               ].filter(s => s.count > 0).map((s) => (
                 <div key={s.label} style={{
                   display: "flex", alignItems: "center", gap: 5,
@@ -234,19 +245,19 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
               style={{
                 display: "flex", alignItems: "center", gap: 8,
                 padding: "7px 16px", borderRadius: 10, cursor: "pointer",
-                border: `1px solid ${done ? "rgba(74,222,128,0.35)" : "rgba(255,255,255,0.1)"}`,
-                background: done ? "rgba(74,222,128,0.1)" : "var(--bg-raised)",
-                color: done ? "#4ade80" : "var(--text-muted)",
+                border: `1px solid ${done ? "var(--success-border)" : "rgba(255,255,255,0.1)"}`,
+                background: done ? "var(--success-bg)" : "var(--bg-raised)",
+                color: done ? "var(--success)" : "var(--text-muted)",
                 fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.1em",
                 transition: "all 0.2s",
               }}
-              onMouseEnter={(e) => { if (!done) { e.currentTarget.style.borderColor = "rgba(74,222,128,0.3)"; e.currentTarget.style.color = "#4ade80"; } }}
+              onMouseEnter={(e) => { if (!done) { e.currentTarget.style.borderColor = "var(--a)"; e.currentTarget.style.color = "var(--accent)"; } }}
               onMouseLeave={(e) => { if (!done) { e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "var(--text-muted)"; } }}
             >
               <span style={{
                 width: 14, height: 14, borderRadius: "50%",
-                border: `1.5px solid ${done ? "#4ade80" : "var(--text-faint)"}`,
-                background: done ? "#4ade80" : "transparent",
+                border: `1.5px solid ${done ? "var(--success)" : "var(--t3)"}`,  
+                background: done ? "var(--success)" : "transparent",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 flexShrink: 0, transition: "all 0.2s",
               }}>
@@ -258,7 +269,7 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
         </motion.div>
 
         {/* ── Body: sidebar + main ── */}
-        <div style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative", zIndex: 1 }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ flex: 1, display: "flex", overflow: "hidden", position: "relative", zIndex: 1 }}>
 
           {/* ── Left Sidebar ── */}
           <motion.div
@@ -307,23 +318,23 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
 
             {/* Progress block */}
             <div style={{ padding: "18px 22px", borderBottom: "1px solid var(--border)" }}>
-              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.18em", color: "var(--text-faint)", textTransform: "uppercase", marginBottom: 10 }}>
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.18em", color: "var(--t3)", textTransform: "uppercase", marginBottom: 10 }}>
                 Topic Progress
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
                 <div style={{ flex: 1, height: 4, borderRadius: 999, background: "var(--border)", overflow: "hidden" }}>
-                  <div style={{ height: "100%", width: done ? "100%" : "0%", borderRadius: 999, background: done ? "#4ade80" : node.color.accent, transition: "width 0.5s ease" }}/>
+                  <div style={{ height: "100%", width: done ? "100%" : "0%", borderRadius: 999, background: done ? "var(--success)" : node.color.accent, transition: "width 0.5s ease" }}/>
                 </div>
-                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: done ? "#4ade80" : "var(--text-dim)" }}>
+                <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, color: done ? "var(--success)" : "var(--text-dim)" }}>
                   {done ? "100%" : "0%"}
                 </span>
               </div>
               <div style={{
                 padding: "8px 12px", borderRadius: 9,
-                background: done ? "rgba(74,222,128,0.07)" : "var(--bg-raised)",
-                border: `1px solid ${done ? "rgba(74,222,128,0.2)" : "var(--border)"}`,
+                background: done ? "var(--success-bg)" : "var(--bg-raised)",
+                border: `1px solid ${done ? "var(--success-border)" : "var(--border)"}`,
                 fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.1em",
-                color: done ? "#4ade80" : "var(--text-dim)", textTransform: "uppercase",
+                color: done ? "var(--success)" : "var(--text-dim)", textTransform: "uppercase",
               }}>
                 {done ? "✓ Topic Completed" : "○ Not Yet Started"}
               </div>
@@ -331,25 +342,22 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
 
             {/* Section navigator */}
             <div style={{ padding: "18px 22px", flex: 1 }}>
-              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.18em", color: "var(--text-faint)", textTransform: "uppercase", marginBottom: 10 }}>
+              <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.18em", color: "var(--t3)", textTransform: "uppercase", marginBottom: 10 }}>
                 Sections
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
                 {sections.map((sec) => (
                   <button
                     key={sec.id}
-                    onClick={() => {
-                      setActiveSection(activeSection === sec.id ? null : sec.id);
-                      document.getElementById(`section-${sec.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                    }}
+                    onClick={() => handleSectionClick(sec.id)}
                     style={{
                       display: "flex", alignItems: "center", gap: 10,
                       padding: "10px 12px", borderRadius: 10, cursor: "pointer",
                       border: `1px solid ${activeSection === sec.id ? sec.color + "30" : "transparent"}`,
                       background: activeSection === sec.id ? `${sec.color}0a` : "transparent",
-                      textAlign: "left", transition: "all 0.16s",
+                      textAlign: "left", transition: COMMON_TRANSITIONS.normal,
                     }}
-                    onMouseEnter={(e) => { if (activeSection !== sec.id) e.currentTarget.style.background = "var(--bg-raised)"; }}
+                    onMouseEnter={(e) => { if (activeSection !== sec.id) e.currentTarget.style.background = "var(--bg-1)"; }}
                     onMouseLeave={(e) => { if (activeSection !== sec.id) e.currentTarget.style.background = "transparent"; }}
                   >
                     <div style={{
@@ -362,7 +370,7 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
                       {sec.icon}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 1 }}>
+                      <div style={{ fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 600, color: "var(--t1)", marginBottom: 1 }}>
                         {sec.label}
                       </div>
                       <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: sec.color, letterSpacing: "0.08em" }}>
@@ -387,7 +395,7 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
                 {[
                   { label: "Total Items", value: totalItems, color: "var(--accent)" },
-                  { label: "Sections", value: sections.length, color: "#60a5fa" },
+                  { label: "Sections", value: sections.length, color: "var(--info)" },
                   { label: "Phase", value: `P${node.phaseIdx + 1}`, color: node.color.accent },
                   { label: "Topic", value: `T${node.topicIdx + 1}`, color: node.color.accent },
                 ].map((s) => (
@@ -396,7 +404,7 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
                     background: "var(--bg-surface)",
                     border: "1px solid var(--border)",
                   }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 4 }}>
+                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--t3)", marginBottom: 4 }}>
                       {s.label}
                     </div>
                     <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 17, fontWeight: 800, color: s.color }}>
@@ -421,7 +429,7 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
               >
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.22em", color: "var(--text-faint)", textTransform: "uppercase", marginBottom: 12 }}>
+                    <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.22em", color: "var(--t3)", textTransform: "uppercase", marginBottom: 12 }}>
                       {node.phaseTitle} · Topic {node.topicIdx + 1}
                     </div>
                     <h1 style={{
@@ -450,7 +458,7 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
                       <svg width="80" height="80" style={{ transform: "rotate(-90deg)" }}>
                         <circle cx="40" cy="40" r="33" fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="4"/>
                         <circle cx="40" cy="40" r="33" fill="none"
-                          stroke={done ? "#4ade80" : node.color.accent}
+                          stroke={done ? "var(--success)" : node.color.accent}
                           strokeWidth="4"
                           strokeDasharray={207.3}
                           strokeDashoffset={done ? 0 : 207.3}
@@ -462,10 +470,10 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
                         position: "absolute", inset: 0,
                         display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                       }}>
-                        <span style={{ fontFamily: "'Syne',sans-serif", fontSize: 20, fontWeight: 800, color: done ? "#4ade80" : "var(--text-faint)", lineHeight: 1 }}>
+                        <span style={{ fontFamily: "'Syne',sans-serif", fontSize: 20, fontWeight: 800, color: done ? "var(--success)" : "var(--t3)", lineHeight: 1 }}>
                           {done ? "✓" : "○"}
                         </span>
-                        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "var(--text-faint)", letterSpacing: "0.1em", marginTop: 3 }}>
+                        <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 7, color: "var(--t3)", letterSpacing: "0.1em", marginTop: 3 }}>
                           {done ? "DONE" : "OPEN"}
                         </span>
                       </div>
@@ -590,8 +598,8 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
                     {sec.id === "project" && sec.projectDetail && (
                       <div style={{
                         marginTop: 14, padding: "18px 20px",
-                        borderRadius: 16, border: "1px solid rgba(74,222,128,0.18)",
-                        background: "rgba(74,222,128,0.05)",
+                        borderRadius: 16, border: "1px solid var(--success-border)",
+                        background: "var(--success-bg)",
                       }}>
                         {sec.projectDetail.description && (
                           <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.7, margin: "0 0 12px", fontFamily: "'DM Sans',sans-serif" }}>
@@ -600,10 +608,10 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
                         )}
                         {sec.projectDetail.features?.length > 0 && (
                           <div>
-                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.16em", color: "#4ade80", marginBottom: 8, textTransform: "uppercase" }}>Features</div>
+                            <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.16em", color: "var(--success)", marginBottom: 8, textTransform: "uppercase" }}>Features</div>
                             <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                               {sec.projectDetail.features.map((f, fi) => (
-                                <span key={fi} style={{ padding: "3px 10px", borderRadius: 999, background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.22)", fontSize: 11, color: "#86efac", fontFamily: "'DM Mono',monospace" }}>
+                                <span key={fi} style={{ padding: "3px 10px", borderRadius: 999, background: "var(--success-bg)", border: "1px solid var(--success-border)", fontSize: 11, color: "var(--success)", fontFamily: "'DM Mono',monospace" }}>
                                   {f}
                                 </span>
                               ))}
@@ -658,9 +666,9 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
                     onClick={() => setProgress((p) => ({ ...p, [key]: !done }))}
                     style={{
                       padding: "11px 22px", borderRadius: 12, cursor: "pointer",
-                      border: `1px solid ${done ? "rgba(74,222,128,0.4)" : node.color.border}`,
-                      background: done ? "rgba(74,222,128,0.12)" : `${node.color.accent}18`,
-                      color: done ? "#4ade80" : node.color.accent,
+                      border: `1px solid ${done ? "var(--success-border)" : node.color.border}`,
+                      background: done ? "var(--success-bg)" : `${node.color.accent}18`,
+                      color: done ? "var(--success)" : node.color.accent,
                       fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.1em",
                       transition: "all 0.2s",
                     }}
@@ -676,10 +684,10 @@ function TopicDetailPanel({ node, progress, setProgress, onClose, originRect }) 
       </motion.div>
     </AnimatePresence>
   );
-}
+});
 
 // ─── PhaseRoadmapPanel ────────────────────────────────────────────────────────
-function PhaseRoadmapPanel({ phases, progress, setProgress }) {
+const PhaseRoadmapPanel = memo(function PhaseRoadmapPanel({ phases, progress, setProgress }) {
   const nodes = phases.flatMap((phase, phaseIdx) =>
     phase.topics.map((topic, topicIdx) => ({
       id: `phase-${phaseIdx}-topic-${topicIdx}`,
@@ -831,10 +839,10 @@ function PhaseRoadmapPanel({ phases, progress, setProgress }) {
       </div>
     </>
   );
-}
+});
 
 // ─── WeeklyTrackPanel ─────────────────────────────────────────────────────────
-function WeeklyTrackPanel({ weekly, progress, setProgress }) {
+const WeeklyTrackPanel = memo(function WeeklyTrackPanel({ weekly, progress, setProgress }) {
   const nodes = weekly.map((w, i) => ({
     id: `week-${i}`,
     idx: i,
@@ -886,19 +894,19 @@ function WeeklyTrackPanel({ weekly, progress, setProgress }) {
             <div style={{ flexShrink: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 28px", borderBottom: "1px solid var(--border)", background: "color-mix(in srgb, var(--bg) 85%, transparent)", backdropFilter: "blur(20px)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <button onClick={() => setSelectedId(null)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-raised)", color: "var(--text-muted)", cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.12em", transition: "all 0.18s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-border)"; e.currentTarget.style.color = "var(--accent-bright)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--a)"; e.currentTarget.style.color = "var(--accent-bright)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "var(--bg-raised)"; }}>
                   <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M7.5 1.5L3 5.5l4.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
                   BACK
                 </button>
-                <span style={{ color: "var(--text-faint)", fontSize: 10 }}>›</span>
+                <span style={{ color: "var(--t3)", fontSize: 10 }}>›</span>
                 <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.2em", color: selectedNode.color.accent, textTransform: "uppercase" }}>{selectedNode.tag}</span>
-                <span style={{ color: "var(--text-faint)", fontSize: 10 }}>›</span>
+                <span style={{ color: "var(--t3)", fontSize: 10 }}>›</span>
                 <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", color: "var(--text-dim)" }}>{selectedNode.label}</span>
               </div>
               <button onClick={() => setProgress((p) => ({ ...p, [selectedNode.id]: !progress[selectedNode.id] }))}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 10, cursor: "pointer", border: `1px solid ${progress[selectedNode.id] ? "rgba(74,222,128,0.35)" : "rgba(255,255,255,0.1)"}`, background: progress[selectedNode.id] ? "rgba(74,222,128,0.1)" : "var(--bg-raised)", color: progress[selectedNode.id] ? "#4ade80" : "var(--text-muted)", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.1em", transition: "all 0.2s" }}>
-                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `1.5px solid ${progress[selectedNode.id] ? "#4ade80" : "var(--text-faint)"}`, background: progress[selectedNode.id] ? "#4ade80" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 10, cursor: "pointer", border: `1px solid ${progress[selectedNode.id] ? "var(--success-border)" : "rgba(255,255,255,0.1)"}`, background: progress[selectedNode.id] ? "var(--success-bg)" : "var(--bg-raised)", color: progress[selectedNode.id] ? "var(--success)" : "var(--text-muted)", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.1em", transition: "all 0.2s" }}>
+                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `1.5px solid ${progress[selectedNode.id] ? "var(--success)" : "var(--t3)"}`, background: progress[selectedNode.id] ? "var(--success)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, transition: "all 0.2s" }}>
                   {progress[selectedNode.id] && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="var(--bg)" strokeWidth="1.6" strokeLinecap="round"/></svg>}
                 </span>
                 {progress[selectedNode.id] ? "COMPLETED" : "MARK DONE"}
@@ -908,38 +916,38 @@ function WeeklyTrackPanel({ weekly, progress, setProgress }) {
             {/* Body */}
             <div style={{ flex: 1, overflowY: "auto" }}>
               <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 48px 80px" }}>
-                <div style={{ marginBottom: 12, fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.22em", color: "var(--text-faint)", textTransform: "uppercase" }}>Weekly Schedule · {selectedNode.tag}</div>
+                <div style={{ marginBottom: 12, fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.22em", color: "var(--t3)", textTransform: "uppercase" }}>Weekly Schedule · {selectedNode.tag}</div>
                 <h1 style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(32px,4.5vw,58px)", fontWeight: 800, lineHeight: 0.96, color: "var(--text-heading)", margin: "0 0 32px", letterSpacing: "-0.02em" }}>{selectedNode.label}</h1>
 
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 36 }}>
-                  {selectedNode.week.topics_to_cover?.length > 0 && <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: "rgba(96,165,250,0.08)", border: "1px solid rgba(96,165,250,0.2)" }}><span style={{ fontSize: 11, color: "#60a5fa" }}>◎</span><span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "#60a5fa" }}>{selectedNode.week.topics_to_cover.length} Topics</span></div>}
-                  {selectedNode.week.practice_goals?.length > 0 && <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: "rgba(251,146,60,0.08)", border: "1px solid rgba(251,146,60,0.2)" }}><span style={{ fontSize: 11, color: "#fb923c" }}>◉</span><span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "#fb923c" }}>{selectedNode.week.practice_goals.length} Practice</span></div>}
-                  {selectedNode.week.project_milestone && <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)" }}><span style={{ fontSize: 11, color: "#4ade80" }}>★</span><span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "#4ade80" }}>Milestone</span></div>}
+                  {selectedNode.week.topics_to_cover?.length > 0 && <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: "var(--info-bg)", border: "1px solid var(--info)" }}><span style={{ fontSize: 11, color: "var(--info)" }}>◎</span><span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--info)" }}>{selectedNode.week.topics_to_cover.length} Topics</span></div>}
+                  {selectedNode.week.practice_goals?.length > 0 && <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: "var(--warning)", border: "1px solid var(--warning-border)" }}><span style={{ fontSize: 11, color: "var(--warning)" }}>◉</span><span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--warning)" }}>{selectedNode.week.practice_goals.length} Practice</span></div>}
+                  {selectedNode.week.project_milestone && <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: "var(--success-bg)", border: "1px solid var(--success-border)" }}><span style={{ fontSize: 11, color: "var(--success)" }}>★</span><span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--success)" }}>Milestone</span></div>}
                 </div>
 
                 <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
                   {selectedNode.week.topics_to_cover?.length > 0 && (
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "#60a5fa" }}>◎</div>
+                        <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--info-bg)", border: "1px solid var(--info)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "var(--info)" }}>◎</div>
                         <span style={{ fontFamily: "'Syne',sans-serif", fontSize: 16, fontWeight: 800, color: "var(--text-heading)" }}>Topics to Cover</span>
-                        <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,rgba(96,165,250,0.3),transparent)" }}/>
+                        <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,var(--info),transparent)" }}/>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 9 }}>
                         {selectedNode.week.topics_to_cover.map((t, j) => {
                           const tk = `${selectedNode.id}-topic-${j}`; const td = !!progress[tk];
                           return (
-                            <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 13, background: td ? "rgba(74,222,128,0.05)" : "var(--bg-surface)", border: `1px solid ${td ? "rgba(74,222,128,0.2)" : "var(--border)"}`, position: "relative", overflow: "hidden", transition: "all 0.18s", cursor: "pointer" }}
+                            <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 13, background: td ? "var(--success-bg)" : "var(--bg-surface)", border: `1px solid ${td ? "var(--success-border)" : "var(--border)"}`, position: "relative", overflow: "hidden", transition: "all 0.18s", cursor: "pointer" }}
                               onClick={() => setProgress((p) => ({ ...p, [tk]: !td }))}
-                              onMouseEnter={(e) => { if (!td) { e.currentTarget.style.borderColor = "rgba(96,165,250,0.25)"; e.currentTarget.style.background = "rgba(96,165,250,0.06)"; }}}
+                              onMouseEnter={(e) => { if (!td) { e.currentTarget.style.borderColor = "var(--info)"; e.currentTarget.style.background = "var(--info-bg)"; }}}
                               onMouseLeave={(e) => { if (!td) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-surface)"; }}}
                             >
-                              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "13px 0 0 13px", background: td ? "linear-gradient(to bottom,#4ade8070,#4ade8020)" : "linear-gradient(to bottom,rgba(96,165,250,0.5),rgba(96,165,250,0.12))" }}/>
-                              <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, background: td ? "rgba(74,222,128,0.12)" : "rgba(96,165,250,0.1)", border: `1px solid ${td ? "rgba(74,222,128,0.28)" : "rgba(96,165,250,0.22)"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                {td ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2L7.5 2" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                                    : <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "#60a5fa", fontWeight: 600 }}>{String(j+1).padStart(2,"0")}</span>}
+                              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "13px 0 0 13px", background: td ? "linear-gradient(to bottom,var(--success),var(--success-border))" : "linear-gradient(to bottom,var(--info),var(--info-bg))" }}/>
+                              <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, background: td ? "var(--success-bg)" : "var(--info-bg)", border: `1px solid ${td ? "var(--success-border)" : "var(--info)"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {td ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2L7.5 2" stroke="var(--success)" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                                    : <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "var(--info)", fontWeight: 600 }}>{String(j+1).padStart(2,"0")}</span>}
                               </div>
-                              <span style={{ fontSize: 13, color: td ? "#4ade80" : "var(--text-muted)", lineHeight: 1.55, fontFamily: "'DM Sans',sans-serif", fontWeight: 500, textDecoration: td ? "line-through" : "none", transition: "all 0.18s" }}>{String(t)}</span>
+                              <span style={{ fontSize: 13, color: td ? "var(--success)" : "var(--text-muted)", lineHeight: 1.55, fontFamily: "'DM Sans',sans-serif", fontWeight: 500, textDecoration: td ? "line-through" : "none", transition: "all 0.18s" }}>{String(t)}</span>
                             </div>
                           );
                         })}
@@ -950,25 +958,25 @@ function WeeklyTrackPanel({ weekly, progress, setProgress }) {
                   {selectedNode.week.practice_goals?.length > 0 && (
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "#fb923c" }}>◉</div>
+                        <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--warning)", border: "1px solid var(--warning-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "var(--warning)" }}>◉</div>
                         <span style={{ fontFamily: "'Syne',sans-serif", fontSize: 16, fontWeight: 800, color: "var(--text-heading)" }}>Practice Goals</span>
-                        <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,rgba(251,146,60,0.3),transparent)" }}/>
+                        <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,var(--warning),transparent)" }}/>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 9 }}>
                         {selectedNode.week.practice_goals.map((g, j) => {
                           const pk = `${selectedNode.id}-practice-${j}`; const pd = !!progress[pk];
                           return (
-                            <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 13, background: pd ? "rgba(74,222,128,0.05)" : "var(--bg-surface)", border: `1px solid ${pd ? "rgba(74,222,128,0.2)" : "var(--border)"}`, position: "relative", overflow: "hidden", transition: "all 0.18s", cursor: "pointer" }}
+                            <div key={j} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 13, background: pd ? "var(--success-bg)" : "var(--bg-surface)", border: `1px solid ${pd ? "var(--success-border)" : "var(--border)"}`, position: "relative", overflow: "hidden", transition: "all 0.18s", cursor: "pointer" }}
                               onClick={() => setProgress((p) => ({ ...p, [pk]: !pd }))}
-                              onMouseEnter={(e) => { if (!pd) { e.currentTarget.style.borderColor = "rgba(251,146,60,0.25)"; e.currentTarget.style.background = "rgba(251,146,60,0.06)"; }}}
+                              onMouseEnter={(e) => { if (!pd) { e.currentTarget.style.borderColor = "var(--warning-border)"; e.currentTarget.style.background = "var(--warning)"; }}}
                               onMouseLeave={(e) => { if (!pd) { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-surface)"; }}}
                             >
-                              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "13px 0 0 13px", background: pd ? "linear-gradient(to bottom,#4ade8070,#4ade8020)" : "linear-gradient(to bottom,rgba(251,146,60,0.5),rgba(251,146,60,0.12))" }}/>
-                              <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, background: pd ? "rgba(74,222,128,0.12)" : "rgba(251,146,60,0.1)", border: `1px solid ${pd ? "rgba(74,222,128,0.28)" : "rgba(251,146,60,0.22)"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                {pd ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2L7.5 2" stroke="#4ade80" strokeWidth="1.5" strokeLinecap="round"/></svg>
-                                    : <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "#fb923c", fontWeight: 600 }}>{String(j+1).padStart(2,"0")}</span>}
+                              <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "13px 0 0 13px", background: pd ? "linear-gradient(to bottom,var(--success),var(--success-border))" : "linear-gradient(to bottom,var(--warning),var(--warning-border))" }}/>
+                              <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, background: pd ? "var(--success-bg)" : "var(--warning)", border: `1px solid ${pd ? "var(--success-border)" : "var(--warning-border)"}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {pd ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2L7.5 2" stroke="var(--success)" strokeWidth="1.5" strokeLinecap="round"/></svg>
+                                    : <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, color: "var(--warning)", fontWeight: 600 }}>{String(j+1).padStart(2,"0")}</span>}
                               </div>
-                              <span style={{ fontSize: 13, color: pd ? "#4ade80" : "var(--text-muted)", lineHeight: 1.55, fontFamily: "'DM Sans',sans-serif", fontWeight: 500, textDecoration: pd ? "line-through" : "none", transition: "all 0.18s" }}>{String(g)}</span>
+                              <span style={{ fontSize: 13, color: pd ? "var(--success)" : "var(--text-muted)", lineHeight: 1.55, fontFamily: "'DM Sans',sans-serif", fontWeight: 500, textDecoration: pd ? "line-through" : "none", transition: "all 0.18s" }}>{String(g)}</span>
                             </div>
                           );
                         })}
@@ -977,10 +985,10 @@ function WeeklyTrackPanel({ weekly, progress, setProgress }) {
                   )}
 
                   {selectedNode.week.project_milestone && (
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 18px", borderRadius: 16, background: "rgba(74,222,128,0.05)", border: "1px solid rgba(74,222,128,0.2)", position: "relative", overflow: "hidden" }}>
-                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "16px 0 0 16px", background: "linear-gradient(to bottom,#4ade8070,#4ade8020)" }}/>
-                      <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(74,222,128,0.12)", border: "1px solid rgba(74,222,128,0.25)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "#4ade80", flexShrink: 0 }}>★</div>
-                      <div><div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", color: "rgba(74,222,128,0.6)", textTransform: "uppercase", marginBottom: 4 }}>Milestone</div><div style={{ fontSize: 13, color: "#86efac", fontFamily: "'DM Sans',sans-serif", fontWeight: 500, lineHeight: 1.6 }}>{selectedNode.week.project_milestone}</div></div>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 18px", borderRadius: 16, background: "var(--success-bg)", border: "1px solid var(--success-border)", position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "16px 0 0 16px", background: "linear-gradient(to bottom,var(--success),var(--success-bg))" }}/>
+                      <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--success-bg)", border: "1px solid var(--success-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "var(--success)", flexShrink: 0 }}>★</div>
+                      <div><div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", color: "var(--success)", textTransform: "uppercase", marginBottom: 4 }}>Milestone</div><div style={{ fontSize: 13, color: "var(--success)", fontFamily: "'DM Sans',sans-serif", fontWeight: 500, lineHeight: 1.6 }}>{selectedNode.week.project_milestone}</div></div>
                     </div>
                   )}
                 </div>
@@ -1046,11 +1054,11 @@ function WeeklyTrackPanel({ weekly, progress, setProgress }) {
       </div>
     </>
   );
-}
+});
 
 // ─── ProjectsTrackPanel ───────────────────────────────────────────────────────
-function ProjectsTrackPanel({ projects, progress, setProgress }) {
-  const LVL_COLOR = { beginner: { accent: "#4ade80", border: "rgba(74,222,128,0.28)" }, intermediate: { accent: "var(--accent)", border: "var(--accent-border)" }, advanced: { accent: "#f97316", border: "rgba(249,115,22,0.28)" } };
+const ProjectsTrackPanel = memo(function ProjectsTrackPanel({ projects, progress, setProgress }) {
+  const LVL_COLOR = LEVEL_COLORS;
   const nodes = ["beginner", "intermediate", "advanced"].flatMap((lvl) =>
     (projects[lvl] || []).map((p, i) => ({
       id: `project-${lvl}-${i}`, idx: i, lvl, project: p,
@@ -1096,19 +1104,19 @@ function ProjectsTrackPanel({ projects, progress, setProgress }) {
             <div style={{ flexShrink: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 28px", borderBottom: "1px solid var(--border)", background: "color-mix(in srgb, var(--bg) 85%, transparent)", backdropFilter: "blur(20px)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <button onClick={() => setSelectedId(null)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-raised)", color: "var(--text-muted)", cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.12em", transition: "all 0.18s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-border)"; e.currentTarget.style.color = "var(--accent-bright)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--a)"; e.currentTarget.style.color = "var(--accent-bright)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "var(--bg-raised)"; }}>
                   <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M7.5 1.5L3 5.5l4.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
                   BACK
                 </button>
-                <span style={{ color: "var(--text-faint)", fontSize: 10 }}>›</span>
+                <span style={{ color: "var(--t3)", fontSize: 10 }}>›</span>
                 <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.2em", color: selectedNode.color.accent, textTransform: "uppercase" }}>{selectedNode.lvl}</span>
-                <span style={{ color: "var(--text-faint)", fontSize: 10 }}>›</span>
+                <span style={{ color: "var(--t3)", fontSize: 10 }}>›</span>
                 <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", color: "var(--text-dim)" }}>{selectedNode.label}</span>
               </div>
               <button onClick={() => setProgress((p) => ({ ...p, [selectedNode.id]: !progress[selectedNode.id] }))}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 10, cursor: "pointer", border: `1px solid ${progress[selectedNode.id] ? "rgba(74,222,128,0.35)" : "rgba(255,255,255,0.1)"}`, background: progress[selectedNode.id] ? "rgba(74,222,128,0.1)" : "var(--bg-raised)", color: progress[selectedNode.id] ? "#4ade80" : "var(--text-muted)", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.1em", transition: "all 0.2s" }}>
-                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `1.5px solid ${progress[selectedNode.id] ? "#4ade80" : "var(--text-faint)"}`, background: progress[selectedNode.id] ? "#4ade80" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 10, cursor: "pointer", border: `1px solid ${progress[selectedNode.id] ? "var(--success-border)" : "rgba(255,255,255,0.1)"}`, background: progress[selectedNode.id] ? "var(--success-bg)" : "var(--bg-raised)", color: progress[selectedNode.id] ? "var(--success)" : "var(--text-muted)", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.1em", transition: "all 0.2s" }}>
+                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `1.5px solid ${progress[selectedNode.id] ? "var(--success)" : "var(--t3)"}`, background: progress[selectedNode.id] ? "var(--success)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   {progress[selectedNode.id] && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="var(--bg)" strokeWidth="1.6" strokeLinecap="round"/></svg>}
                 </span>
                 {progress[selectedNode.id] ? "COMPLETED" : "MARK DONE"}
@@ -1118,7 +1126,7 @@ function ProjectsTrackPanel({ projects, progress, setProgress }) {
             {/* Body */}
             <div style={{ flex: 1, overflowY: "auto" }}>
               <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 48px 80px" }}>
-                <div style={{ marginBottom: 12, fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.22em", color: "var(--text-faint)", textTransform: "uppercase" }}>Projects · {selectedNode.lvl}</div>
+                <div style={{ marginBottom: 12, fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.22em", color: "var(--t3)", textTransform: "uppercase" }}>Projects · {selectedNode.lvl}</div>
                 <h1 style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(32px,4.5vw,58px)", fontWeight: 800, lineHeight: 0.96, color: "var(--text-heading)", margin: "0 0 16px", letterSpacing: "-0.02em" }}>{selectedNode.label.toUpperCase()}</h1>
                 {selectedNode.project.description && <p style={{ fontSize: 15, color: "var(--text-muted)", lineHeight: 1.75, margin: "0 0 32px", maxWidth: 580, fontFamily: "'DM Sans',sans-serif" }}>{selectedNode.project.description}</p>}
 
@@ -1126,15 +1134,15 @@ function ProjectsTrackPanel({ projects, progress, setProgress }) {
                   {selectedNode.project.features?.length > 0 && (
                     <div>
                       <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                        <div style={{ width: 34, height: 34, borderRadius: 10, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "#60a5fa" }}>◎</div>
+                        <div style={{ width: 34, height: 34, borderRadius: 10, background: "var(--info-bg)", border: "1px solid var(--info)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, color: "var(--info)" }}>◎</div>
                         <span style={{ fontFamily: "'Syne',sans-serif", fontSize: 16, fontWeight: 800, color: "var(--text-heading)" }}>Features</span>
-                        <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,rgba(96,165,250,0.3),transparent)" }}/>
+                        <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg,var(--info),transparent)" }}/>
                       </div>
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))", gap: 9 }}>
                         {selectedNode.project.features.map((f, fi) => (
                           <div key={fi} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px", borderRadius: 13, background: "var(--bg-surface)", border: "1px solid var(--border)", position: "relative", overflow: "hidden" }}>
-                            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "13px 0 0 13px", background: "linear-gradient(to bottom,rgba(96,165,250,0.5),rgba(96,165,250,0.12))" }}/>
-                            <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", fontSize: 8, color: "#60a5fa", fontWeight: 600 }}>{String(fi+1).padStart(2,"0")}</div>
+                            <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "13px 0 0 13px", background: "linear-gradient(to bottom,var(--info),var(--info-bg))" }}/>
+                            <div style={{ width: 22, height: 22, borderRadius: 7, flexShrink: 0, background: "var(--info-bg)", border: "1px solid var(--info)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", fontSize: 8, color: "var(--info)", fontWeight: 600 }}>{String(fi+1).padStart(2,"0")}</div>
                             <span style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.55, fontFamily: "'DM Sans',sans-serif", fontWeight: 500 }}>{String(f)}</span>
                           </div>
                         ))}
@@ -1213,10 +1221,10 @@ function ProjectsTrackPanel({ projects, progress, setProgress }) {
       </div>
     </>
   );
-}
+});
 
 // ─── InterviewTrackPanel ──────────────────────────────────────────────────────
-function InterviewTrackPanel({ interview, progress, setProgress }) {
+const InterviewTrackPanel = memo(function InterviewTrackPanel({ interview, progress, setProgress }) {
   const nodes = interview.map((s, i) => ({
     id: `interview-${i}`, idx: i, stage: s,
     label: s.stage || `Stage ${i + 1}`,
@@ -1255,19 +1263,19 @@ function InterviewTrackPanel({ interview, progress, setProgress }) {
             <div style={{ flexShrink: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 28px", borderBottom: "1px solid var(--border)", background: "color-mix(in srgb, var(--bg) 85%, transparent)", backdropFilter: "blur(20px)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <button onClick={() => setSelectedId(null)} style={{ display: "flex", alignItems: "center", gap: 7, padding: "7px 14px", borderRadius: 10, border: "1px solid var(--border)", background: "var(--bg-raised)", color: "var(--text-muted)", cursor: "pointer", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.12em", transition: "all 0.18s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-border)"; e.currentTarget.style.color = "var(--accent-bright)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--a)"; e.currentTarget.style.color = "var(--accent-bright)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.background = "var(--bg-raised)"; }}>
                   <svg width="11" height="11" viewBox="0 0 11 11" fill="none"><path d="M7.5 1.5L3 5.5l4.5 4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
                   BACK
                 </button>
-                <span style={{ color: "var(--text-faint)", fontSize: 10 }}>›</span>
+                <span style={{ color: "var(--t3)", fontSize: 10 }}>›</span>
                 <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.2em", color: selectedNode.color.accent, textTransform: "uppercase" }}>Stage {String(selectedNode.idx + 1).padStart(2,"0")}</span>
-                <span style={{ color: "var(--text-faint)", fontSize: 10 }}>›</span>
+                <span style={{ color: "var(--t3)", fontSize: 10 }}>›</span>
                 <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", color: "var(--text-dim)" }}>{selectedNode.label}</span>
               </div>
               <button onClick={() => setProgress((p) => ({ ...p, [selectedNode.id]: !progress[selectedNode.id] }))}
-                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 10, cursor: "pointer", border: `1px solid ${progress[selectedNode.id] ? "rgba(74,222,128,0.35)" : "rgba(255,255,255,0.1)"}`, background: progress[selectedNode.id] ? "rgba(74,222,128,0.1)" : "var(--bg-raised)", color: progress[selectedNode.id] ? "#4ade80" : "var(--text-muted)", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.1em", transition: "all 0.2s" }}>
-                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `1.5px solid ${progress[selectedNode.id] ? "#4ade80" : "var(--text-faint)"}`, background: progress[selectedNode.id] ? "#4ade80" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 16px", borderRadius: 10, cursor: "pointer", border: `1px solid ${progress[selectedNode.id] ? "var(--success-border)" : "rgba(255,255,255,0.1)"}`, background: progress[selectedNode.id] ? "var(--success-bg)" : "var(--bg-raised)", color: progress[selectedNode.id] ? "var(--success)" : "var(--text-muted)", fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.1em", transition: "all 0.2s" }}>
+                <span style={{ width: 14, height: 14, borderRadius: "50%", border: `1.5px solid ${progress[selectedNode.id] ? "var(--success)" : "var(--t3)"}`, background: progress[selectedNode.id] ? "var(--success)" : "transparent", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   {progress[selectedNode.id] && <svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="var(--bg)" strokeWidth="1.6" strokeLinecap="round"/></svg>}
                 </span>
                 {progress[selectedNode.id] ? "COMPLETED" : "MARK DONE"}
@@ -1277,7 +1285,7 @@ function InterviewTrackPanel({ interview, progress, setProgress }) {
             {/* Body */}
             <div style={{ flex: 1, overflowY: "auto" }}>
               <div style={{ maxWidth: 900, margin: "0 auto", padding: "40px 48px 80px" }}>
-                <div style={{ marginBottom: 12, fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.22em", color: "var(--text-faint)", textTransform: "uppercase" }}>Interview Prep · Stage {String(selectedNode.idx + 1).padStart(2,"0")}</div>
+                <div style={{ marginBottom: 12, fontFamily: "'DM Mono',monospace", fontSize: 9, letterSpacing: "0.22em", color: "var(--t3)", textTransform: "uppercase" }}>Interview Prep · Stage {String(selectedNode.idx + 1).padStart(2,"0")}</div>
                 <h1 style={{ fontFamily: "'Syne',sans-serif", fontSize: "clamp(32px,4.5vw,58px)", fontWeight: 800, lineHeight: 0.96, color: "var(--text-heading)", margin: "0 0 24px", letterSpacing: "-0.02em" }}>{selectedNode.label.toUpperCase()}</h1>
 
                 {selectedNode.stage.focus_areas?.length > 0 && (
@@ -1299,7 +1307,7 @@ function InterviewTrackPanel({ interview, progress, setProgress }) {
                       <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
                         {selectedNode.stage.common_questions.map((q, qi) => (
                           <div key={qi} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 15px", borderRadius: 13, background: "var(--bg-surface)", border: "1px solid var(--border)", position: "relative", overflow: "hidden", transition: "all 0.18s" }}
-                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-border)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--a)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
                             onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.background = "var(--bg-surface)"; }}>
                             <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "13px 0 0 13px", background: "linear-gradient(to bottom,rgba(167,139,250,0.6),rgba(167,139,250,0.15))" }}/>
                             <div style={{ width: 24, height: 24, borderRadius: 7, flexShrink: 0, background: "var(--accent-dim)", border: "1px solid rgba(167,139,250,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", fontSize: 8, color: "var(--accent)", fontWeight: 600 }}>Q{qi+1}</div>
@@ -1310,10 +1318,10 @@ function InterviewTrackPanel({ interview, progress, setProgress }) {
                     </div>
                   )}
                   {selectedNode.stage.mock_strategy && (
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 18px", borderRadius: 16, background: "rgba(251,146,60,0.05)", border: "1px solid rgba(251,146,60,0.2)", position: "relative", overflow: "hidden" }}>
-                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "16px 0 0 16px", background: "linear-gradient(to bottom,rgba(251,146,60,0.6),rgba(251,146,60,0.15))" }}/>
-                      <div style={{ width: 32, height: 32, borderRadius: 9, background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>💡</div>
-                      <div><div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", color: "rgba(251,146,60,0.6)", textTransform: "uppercase", marginBottom: 5 }}>Mock Strategy</div><div style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.65, fontFamily: "'DM Sans',sans-serif", fontWeight: 500 }}>{selectedNode.stage.mock_strategy}</div></div>
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "16px 18px", borderRadius: 16, background: "var(--warning)", border: "1px solid var(--warning-border)", position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 3, borderRadius: "16px 0 0 16px", background: "linear-gradient(to bottom,var(--warning-border),var(--warning))" }}/>
+                      <div style={{ width: 32, height: 32, borderRadius: 9, background: "var(--warning)", border: "1px solid var(--warning-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, flexShrink: 0 }}>💡</div>
+                      <div><div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", color: "var(--warning-border)", textTransform: "uppercase", marginBottom: 5 }}>Mock Strategy</div><div style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.65, fontFamily: "'DM Sans',sans-serif", fontWeight: 500 }}>{selectedNode.stage.mock_strategy}</div></div>
                     </div>
                   )}
                 </div>
@@ -1377,10 +1385,10 @@ function InterviewTrackPanel({ interview, progress, setProgress }) {
       </div>
     </>
   );
-}
+});
 
 // ─── SidePanel ────────────────────────────────────────────────────────────────
-function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerDay, duration, phases, weekly, pct, counts, sectionDone, tab, setTab, saving, raw, role }) {
+const SidePanel = memo(function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerDay, duration, phases, weekly, pct, counts, sectionDone, tab, setTab, saving, raw, role }) {
   useEffect(() => {
     const handler = (e) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", handler);
@@ -1405,7 +1413,7 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
     )},
   ];
 
-  const LEVEL_COLORS = { advanced: "#f97316", intermediate: "var(--accent)", beginner: "#4ade80" };
+  const LEVEL_COLORS = { advanced: "var(--warning)", intermediate: "var(--accent)", beginner: "var(--success)" };
   const levelColor = LEVEL_COLORS[level?.toLowerCase?.()] || "var(--accent)";
 
   return (
@@ -1426,7 +1434,7 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
           >
             <div style={{ position: "absolute", inset: 0, background: "var(--bg-overlay, linear-gradient(160deg, var(--bg) 0%, var(--bg-surface) 100%))", borderRight: "1px solid var(--border)", boxShadow: "28px 0 90px rgba(0,0,0,0.7)" }}/>
             <div style={{ position: "absolute", top: -100, left: -100, width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle, rgba(167,139,250,0.09) 0%, transparent 70%)", pointerEvents: "none" }}/>
-            <div style={{ position: "absolute", bottom: -60, right: -60, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, rgba(96,165,250,0.06) 0%, transparent 70%)", pointerEvents: "none" }}/>
+            <div style={{ position: "absolute", bottom: -60, right: -60, width: 240, height: 240, borderRadius: "50%", background: "radial-gradient(circle, var(--info-bg) 0%, transparent 70%)", pointerEvents: "none" }}/>
 
             <div style={{ position: "relative", padding: "20px 22px 18px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -1448,7 +1456,7 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
                   <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 5 }}>
                     <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.16em", color: "var(--text-dim)", textTransform: "uppercase" }}>Career Roadmap</span>
                     {level && <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.12em", padding: "2px 7px", borderRadius: 999, background: `${levelColor}16`, border: `1px solid ${levelColor}35`, color: levelColor, textTransform: "uppercase" }}>{level}</span>}
-                    {saving && <span style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "'DM Mono',monospace", fontSize: 8, color: "var(--accent-border)" }}><div style={{ width: 5, height: 5, borderRadius: "50%", border: "1.5px solid rgba(167,139,250,0.3)", borderTopColor: "var(--accent)", animation: "spin .7s linear infinite" }}/>Saving</span>}
+                    {saving && <span style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: "'DM Mono',monospace", fontSize: 8, color: "var(--a)" }}><div style={{ width: 5, height: 5, borderRadius: "50%", border: "1.5px solid rgba(167,139,250,0.3)", borderTopColor: "var(--accent)", animation: "spin .7s linear infinite" }}/>Saving</span>}
                   </div>
                   <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 14, fontWeight: 800, color: "var(--text-heading)", lineHeight: 1.1, textTransform: "uppercase", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {(raw?.title || role || "Roadmap").toUpperCase()}
@@ -1461,13 +1469,13 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
               <style>{`.sp-scroll::-webkit-scrollbar{width:4px}.sp-scroll::-webkit-scrollbar-track{background:transparent}.sp-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:4px}`}</style>
 
               <div style={{ padding: "20px 20px 8px" }}>
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.22em", color: "var(--text-faint)", textTransform: "uppercase", marginBottom: 8, paddingLeft: 2 }}>Navigation</div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.22em", color: "var(--t3)", textTransform: "uppercase", marginBottom: 8, paddingLeft: 2 }}>Navigation</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
                   {NAV_LINKS.map((item) => (
                     <button key={item.path}
                       onClick={() => { onClose(); navigate(item.path); }}
                       style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid transparent", background: "transparent", color: "var(--text-muted)", fontFamily: "'DM Sans',sans-serif", fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all 0.16s", textAlign: "left" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent-dim)"; e.currentTarget.style.borderColor = "var(--accent-border)"; e.currentTarget.style.color = "var(--accent-bright)"; }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--accent-dim)"; e.currentTarget.style.borderColor = "var(--a)"; e.currentTarget.style.color = "var(--accent-bright)"; }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; e.currentTarget.style.color = "var(--text-muted)"; }}
                     >
                       <span style={{ width: 30, height: 30, borderRadius: 9, background: "var(--bg-raised)", border: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>{item.icon}</span>
@@ -1480,7 +1488,7 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
                 <button
                   onClick={() => { onClose(); navigate(-1); }}
                   style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8, width: "100%", padding: "10px 12px", borderRadius: 12, border: "1px solid var(--border)", background: "var(--bg-surface)", color: "var(--text-dim)", fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: "0.1em", cursor: "pointer", transition: "all 0.16s" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent-border)"; e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--a)"; e.currentTarget.style.color = "var(--accent)"; e.currentTarget.style.background = "var(--accent-dim)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.color = "var(--text-dim)"; e.currentTarget.style.background = "var(--bg-surface)"; }}
                 >
                   <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6l4 4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
@@ -1491,7 +1499,7 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
               <div style={{ height: 1, background: "var(--bg-raised)", margin: "12px 20px" }}/>
 
               <div style={{ padding: "0 20px 8px" }}>
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.22em", color: "var(--text-faint)", textTransform: "uppercase", marginBottom: 8, paddingLeft: 2 }}>Sections</div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.22em", color: "var(--t3)", textTransform: "uppercase", marginBottom: 8, paddingLeft: 2 }}>Sections</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                   {ROADMAP_TABS.map((t) => {
                     const total = counts[t];
@@ -1501,14 +1509,14 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
                     return (
                       <button key={t}
                         onClick={() => { setTab(t); onClose(); }}
-                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 14px", borderRadius: 12, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", textAlign: "left", border: isActive ? "1px solid rgba(167,139,250,0.3)" : "1px solid rgba(255,255,255,0.05)", background: isActive ? "linear-gradient(135deg,rgba(167,139,250,0.13),rgba(96,165,250,0.08))" : "var(--bg-raised)", color: isActive ? "var(--accent-bright)" : "var(--text-dim)", transition: "all 0.18s", boxShadow: isActive ? "0 4px 16px rgba(167,139,250,0.1)" : "none" }}
+                        style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "12px 14px", borderRadius: 12, cursor: "pointer", fontFamily: "'DM Sans',sans-serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.05em", textTransform: "uppercase", textAlign: "left", border: isActive ? "1px solid rgba(167,139,250,0.3)" : "1px solid rgba(255,255,255,0.05)", background: isActive ? "linear-gradient(135deg,rgba(167,139,250,0.13),var(--info-bg))" : "var(--bg-raised)", color: isActive ? "var(--accent-bright)" : "var(--text-dim)", transition: "all 0.18s", boxShadow: isActive ? "0 4px 16px rgba(167,139,250,0.1)" : "none" }}
                         onMouseEnter={(e) => { if (!isActive) { e.currentTarget.style.background = "var(--bg-raised)"; e.currentTarget.style.color = "var(--text-muted)"; } }}
                         onMouseLeave={(e) => { if (!isActive) { e.currentTarget.style.background = "var(--bg-raised)"; e.currentTarget.style.color = "var(--text-dim)"; } }}
                       >
-                        <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: isActive ? "var(--accent)" : allDoneSection ? "#4ade80" : "var(--text-faint)", transition: "background 0.2s", boxShadow: isActive ? "0 0 6px rgba(167,139,250,0.6)" : "none" }}/>
+                        <span style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: isActive ? "var(--accent)" : allDoneSection ? "var(--success)" : "var(--t3)", transition: "background 0.2s", boxShadow: isActive ? "0 0 6px rgba(167,139,250,0.6)" : "none" }}/>
                         <span style={{ flex: 1 }}>{t}</span>
                         {total > 0 && (
-                          <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 9, fontWeight: 600, background: allDoneSection ? "rgba(74,222,128,0.12)" : isActive ? "var(--accent-border)" : "var(--border)", color: allDoneSection ? "#4ade80" : isActive ? "var(--accent)" : "var(--text-dim)", border: `1px solid ${allDoneSection ? "rgba(74,222,128,0.25)" : isActive ? "var(--accent-border)" : "var(--border)"}` }}>
+                          <span style={{ padding: "2px 8px", borderRadius: 999, fontSize: 9, fontWeight: 600, background: allDoneSection ? "var(--success-bg)" : isActive ? "var(--a)" : "var(--border)", color: allDoneSection ? "var(--success)" : isActive ? "var(--accent)" : "var(--text-dim)", border: `1px solid ${allDoneSection ? "var(--success-border)" : isActive ? "var(--a)" : "var(--border)"}` }}>
                             {done}/{total}
                           </span>
                         )}
@@ -1521,7 +1529,7 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
               <div style={{ height: 1, background: "var(--bg-raised)", margin: "12px 20px" }}/>
 
               <div style={{ padding: "0 20px 24px" }}>
-                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.22em", color: "var(--text-faint)", textTransform: "uppercase", marginBottom: 10, paddingLeft: 2 }}>Details</div>
+                <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.22em", color: "var(--t3)", textTransform: "uppercase", marginBottom: 10, paddingLeft: 2 }}>Details</div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
                   {[
                     { label: "Level",      value: level || "Custom" },
@@ -1532,18 +1540,18 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
                     { label: "Weeks",      value: weekly.length || "—" },
                   ].map((s, i) => (
                     <div key={i} style={{ padding: "11px 13px", borderRadius: 11, border: "1px solid var(--border)", background: "var(--bg-surface)" }}>
-                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 4 }}>{s.label}</div>
+                      <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--t3)", marginBottom: 4 }}>{s.label}</div>
                       <div style={{ fontFamily: "'Syne',sans-serif", fontSize: 16, fontWeight: 700, color: "var(--text-muted)" }}>{String(s.value).toUpperCase()}</div>
                     </div>
                   ))}
                 </div>
                 <div style={{ marginTop: 7, padding: "13px 15px", borderRadius: 11, border: "1px solid var(--border)", background: "var(--bg-surface)" }}>
-                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-faint)", marginBottom: 9 }}>Overall Progress</div>
+                  <div style={{ fontFamily: "'DM Mono',monospace", fontSize: 8, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--t3)", marginBottom: 9 }}>Overall Progress</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ flex: 1, height: 4, background: "var(--border)", borderRadius: 999, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${pct}%`, borderRadius: 999, background: pct >= 100 ? "#4ade80" : pct >= 60 ? "var(--accent)" : "#60a5fa", transition: "width 0.5s ease" }}/>
+                      <div style={{ height: "100%", width: `${pct}%`, borderRadius: 999, background: pct >= 100 ? "var(--success)" : pct >= 60 ? "var(--accent)" : "var(--info)", transition: "width 0.5s ease" }}/>
                     </div>
-                    <span style={{ fontFamily: "'Syne',sans-serif", fontSize: 15, fontWeight: 700, color: pct >= 100 ? "#4ade80" : pct >= 60 ? "var(--accent)" : "#60a5fa", minWidth: 38, textAlign: "right" }}>{pct}%</span>
+                    <span style={{ fontFamily: "'Syne',sans-serif", fontSize: 15, fontWeight: 700, color: pct >= 100 ? "var(--success)" : pct >= 60 ? "var(--accent)" : "var(--info)", minWidth: 38, textAlign: "right" }}>{pct}%</span>
                   </div>
                 </div>
               </div>
@@ -1553,7 +1561,7 @@ function SidePanel({ open, onClose, navigate, level, yearsOfExperience, timePerD
       )}
     </AnimatePresence>
   );
-}
+});
 
 // ─── RoadmapPage ──────────────────────────────────────────────────────────────
 export default function RoadmapPage() {
@@ -1599,7 +1607,7 @@ export default function RoadmapPage() {
     <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex", alignItems: "center", justifyContent: "center", gap: 14 }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       <div style={{ width: 18, height: 18, border: "2px solid rgba(167,139,250,0.18)", borderTopColor: "var(--accent)", borderRadius: "50%", animation: "spin .7s linear infinite" }}/>
-      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: "0.18em", color: "var(--text-faint)" }}>LOADING ROADMAP...</span>
+      <span style={{ fontFamily: "'DM Mono',monospace", fontSize: 10, letterSpacing: "0.18em", color: "var(--t3)" }}>LOADING ROADMAP...</span>
     </div>
   );
 
@@ -1628,7 +1636,7 @@ export default function RoadmapPage() {
     INTERVIEW: ivTotal.filter((k) => progress[k]).length,
   };
 
-  const LEVEL_COLORS = { advanced: "#f97316", intermediate: "var(--accent)", beginner: "#4ade80" };
+  const LEVEL_COLORS = { advanced: "var(--warning)", intermediate: "var(--accent)", beginner: "var(--success)" };
   const levelColor = LEVEL_COLORS[level?.toLowerCase?.()] || "var(--accent)";
   const currentTabDone = sectionDone[tab];
   const currentTabTotal = counts[tab];
@@ -1701,7 +1709,7 @@ export default function RoadmapPage() {
         .rp-tab-pill:hover { color: rgba(255,255,255,0.65); border-color: rgba(255,255,255,0.13); }
         .rp-tab-pill.active {
           border-color: rgba(167,139,250,0.32);
-          background: linear-gradient(135deg, rgba(167,139,250,0.13), rgba(96,165,250,0.08));
+          background: linear-gradient(135deg, rgba(167,139,250,0.13), var(--info-bg));
           color: #d0c8ff; box-shadow: 0 2px 12px rgba(167,139,250,0.12);
         }
         .rp-pill-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; transition: background 0.2s; }
@@ -1716,7 +1724,7 @@ export default function RoadmapPage() {
         .rp-card-body { padding: 32px 36px 48px; }
 
         .section-title { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800; color: var(--text-heading); letter-spacing: -0.01em; margin-bottom: 6px; }
-        .section-sub { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.16em; color: var(--text-faint); text-transform: uppercase; margin-bottom: 28px; }
+        .section-sub { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.16em; color: var(--t3); text-transform: uppercase; margin-bottom: 28px; }
 
         .rp-journey-wrap { display: grid; gap: 30px; }
         .rp-journey-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
@@ -1728,7 +1736,7 @@ export default function RoadmapPage() {
         .rp-phase-summary-bar div { height: 100%; border-radius: inherit; transition: width 0.45s ease; }
 
         .rp-journey-track { position: relative; padding: 34px 0 20px; border-radius: 24px; border: 1px solid var(--border); background: var(--bg-raised); overflow: hidden; }
-        .rp-track-line { position: absolute; left: 40px; right: 40px; top: 50%; height: 2px; transform: translateY(-1px); background: linear-gradient(90deg, rgba(96,165,250,0.2), var(--accent-border), rgba(251,146,60,0.2)); pointer-events: none; }
+        .rp-track-line { position: absolute; left: 40px; right: 40px; top: 50%; height: 2px; transform: translateY(-1px); background: linear-gradient(90deg, var(--info), var(--a), var(--warning-border)); pointer-events: none; }
         .rp-track-scroll { overflow-x: auto; overflow-y: hidden; padding: 8px 0; }
         .rp-track-scroll::-webkit-scrollbar { height: 6px; }
         .rp-track-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
@@ -1740,7 +1748,7 @@ export default function RoadmapPage() {
         .rp-track-dot { width: 22px; height: 22px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; background: transparent; display: grid; place-items: center; }
         .rp-track-dot span { width: 16px; height: 16px; border-radius: 50%; background: var(--node-accent); box-shadow: 0 0 0 5px rgba(8,6,15,0.98), 0 0 0 7px var(--node-border); transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease; }
         .rp-track-node.active .rp-track-dot span { transform: scale(1.16); }
-        .rp-track-node.done .rp-track-dot span { box-shadow: 0 0 0 5px rgba(8,6,15,0.98), 0 0 0 7px rgba(74,222,128,0.28); }
+        .rp-track-node.done .rp-track-dot span { box-shadow: 0 0 0 5px rgba(8,6,15,0.98), 0 0 0 7px var(--success-border); }
         .rp-track-node.locked .rp-track-dot { cursor: not-allowed; }
         .rp-track-node.locked .rp-track-dot span { opacity: 0.45; }
 
@@ -1752,7 +1760,7 @@ export default function RoadmapPage() {
         .rp-track-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
         .rp-track-phase { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--node-accent); }
         .rp-track-state { padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.06); color: var(--text-dim); font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.08em; text-transform: uppercase; }
-        .rp-track-state.done { color: #4ade80; background: rgba(74,222,128,0.12); }
+        .rp-track-state.done { color: var(--success); background: var(--success-bg); }
         .rp-track-state.locked { color: rgba(255,255,255,0.24); }
         .rp-track-title { margin: 14px 0 10px; font-family: 'Syne',sans-serif; font-size: 16px; font-weight: 800; line-height: 1.15; color: var(--text-heading); }
         .rp-track-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 11px; color: var(--text-dim); line-height: 1.4; }
@@ -1769,9 +1777,9 @@ export default function RoadmapPage() {
         .proj-card { border-radius: 20px; border: 1px solid var(--border); background: var(--bg-surface); overflow: hidden; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; }
         .proj-card:hover { transform: translateY(-3px); box-shadow: 0 18px 44px rgba(0,0,0,0.35); }
         .proj-bar { height: 2px; }
-        .proj-card.beginner    .proj-bar { background: linear-gradient(90deg,#4ade80,#86efac); }
+        .proj-card.beginner    .proj-bar { background: linear-gradient(90deg,var(--success),var(--success)); }
         .proj-card.intermediate .proj-bar { background: linear-gradient(90deg,#a78bfa,#c4b5fd); }
-        .proj-card.advanced     .proj-bar { background: linear-gradient(90deg,#f97316,#fb923c); }
+        .proj-card.advanced     .proj-bar { background: linear-gradient(90deg,var(--warning),var(--warning)); }
 
         .iv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 14px; }
         .iv-card { border-radius: 20px; border: 1px solid var(--border); background: var(--bg-surface); overflow: hidden; transition: transform 0.2s, border-color 0.2s; }
@@ -1840,10 +1848,10 @@ export default function RoadmapPage() {
                   const allDoneSection = done === total && total > 0;
                   return (
                     <button key={t} className={`rp-tab-pill${isActive ? " active" : ""}`} onClick={() => setTab(t)}>
-                      <span className="rp-pill-dot" style={{ background: isActive ? "var(--accent)" : allDoneSection ? "#4ade80" : "var(--text-faint)", boxShadow: isActive ? "0 0 5px rgba(167,139,250,0.6)" : "none" }}/>
+                      <span className="rp-pill-dot" style={{ background: isActive ? "var(--accent)" : allDoneSection ? "var(--success)" : "var(--t3)", boxShadow: isActive ? "0 0 5px rgba(167,139,250,0.6)" : "none" }}/>
                       {t}
                       {total > 0 && (
-                        <span style={{ padding: "1px 6px", borderRadius: 999, fontSize: 8, background: allDoneSection ? "rgba(74,222,128,0.15)" : isActive ? "var(--accent-border)" : "var(--border)", color: allDoneSection ? "#4ade80" : isActive ? "var(--accent-bright)" : "var(--text-dim)", border: `1px solid ${allDoneSection ? "rgba(74,222,128,0.25)" : isActive ? "var(--accent-border)" : "rgba(255,255,255,0.1)"}` }}>
+                        <span style={{ padding: "1px 6px", borderRadius: 999, fontSize: 8, background: allDoneSection ? "var(--success-bg)" : isActive ? "var(--a)" : "var(--border)", color: allDoneSection ? "var(--success)" : isActive ? "var(--accent-bright)" : "var(--text-dim)", border: `1px solid ${allDoneSection ? "var(--success-border)" : isActive ? "var(--a)" : "rgba(255,255,255,0.1)"}` }}>
                           {done}/{total}
                         </span>
                       )}
@@ -1856,7 +1864,7 @@ export default function RoadmapPage() {
                 <div style={{ width: 28, height: 28, flexShrink: 0, position: "relative" }}>
                   <svg width="28" height="28" style={{ transform: "rotate(-90deg)" }}>
                     <circle cx="14" cy="14" r="11" fill="none" stroke="var(--border)" strokeWidth="2.5"/>
-                    <circle cx="14" cy="14" r="11" fill="none" stroke={pct >= 100 ? "#4ade80" : pct >= 60 ? "var(--accent)" : "#60a5fa"} strokeWidth="2.5" strokeDasharray={69.1} strokeDashoffset={69.1 - (69.1 * pct) / 100} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.6s ease" }}/>
+                    <circle cx="14" cy="14" r="11" fill="none" stroke={pct >= 100 ? "var(--success)" : pct >= 60 ? "var(--accent)" : "var(--info)"} strokeWidth="2.5" strokeDasharray={69.1} strokeDashoffset={69.1 - (69.1 * pct) / 100} strokeLinecap="round" style={{ transition: "stroke-dashoffset 0.6s ease" }}/>
                   </svg>
                   <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'DM Mono',monospace", fontSize: 7, fontWeight: 600, color: "var(--text-muted)" }}>{pct}</span>
                 </div>
@@ -1864,7 +1872,7 @@ export default function RoadmapPage() {
               </div>
 
               {saving && (
-                <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--text-faint)", letterSpacing: "0.1em" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 5, fontFamily: "'DM Mono',monospace", fontSize: 9, color: "var(--t3)", letterSpacing: "0.1em" }}>
                   <div style={{ width: 6, height: 6, borderRadius: "50%", border: "1.5px solid rgba(167,139,250,0.25)", borderTopColor: "var(--accent)", animation: "spin .7s linear infinite" }}/>
                   Saving
                 </span>
@@ -1889,7 +1897,7 @@ export default function RoadmapPage() {
                   <div style={{ height: 1, background: "linear-gradient(90deg, rgba(167,139,250,0.35), var(--accent-dim), transparent)", margin: "16px 0 28px" }}/>
                   {phases.length
                     ? <PhaseRoadmapPanel phases={phases} progress={progress} setProgress={setProgress}/>
-                    : <div style={{ textAlign: "center", padding: "64px", color: "var(--text-faint)", fontSize: 13 }}>No phase data available</div>
+                    : <div style={{ textAlign: "center", padding: "64px", color: "var(--t3)", fontSize: 13 }}>No phase data available</div>
                   }
                 </motion.div>
               )}
@@ -1906,23 +1914,23 @@ export default function RoadmapPage() {
                   <div style={{ height: 1, background: "linear-gradient(90deg,rgba(167,139,250,0.35),var(--accent-dim),transparent)", margin: "16px 0 28px" }}/>
                   {weekly.length
                     ? <WeeklyTrackPanel weekly={weekly} progress={progress} setProgress={setProgress}/>
-                    : <div style={{ textAlign: "center", padding: "64px", color: "var(--text-faint)", fontSize: 13 }}>No weekly plan available</div>
+                    : <div style={{ textAlign: "center", padding: "64px", color: "var(--t3)", fontSize: 13 }}>No weekly plan available</div>
                   }
                 </motion.div>
               )}
               {tab === "PROJECTS" && (
                 <motion.div key="projects" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(96,165,250,0.1)", border: "1px solid rgba(96,165,250,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, color: "#60a5fa", flexShrink: 0 }}>⬡</div>
+                    <div style={{ width: 38, height: 38, borderRadius: 11, background: "var(--info-bg)", border: "1px solid var(--info)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, color: "var(--info)", flexShrink: 0 }}>⬡</div>
                     <div>
                       <div className="section-title" style={{ marginBottom: 0 }}>Build Projects</div>
                       <div className="section-sub" style={{ marginBottom: 0 }}>{allProjects.length} projects · click a card to view details</div>
                     </div>
                   </div>
-                  <div style={{ height: 1, background: "linear-gradient(90deg,rgba(96,165,250,0.35),rgba(96,165,250,0.06),transparent)", margin: "16px 0 28px" }}/>
+                  <div style={{ height: 1, background: "linear-gradient(90deg,var(--info),var(--info-bg),transparent)", margin: "16px 0 28px" }}/>
                   {Object.keys(projects).length
                     ? <ProjectsTrackPanel projects={projects} progress={progress} setProgress={setProgress}/>
-                    : <div style={{ textAlign: "center", padding: "64px", color: "var(--text-faint)", fontSize: 13 }}>No projects available</div>
+                    : <div style={{ textAlign: "center", padding: "64px", color: "var(--t3)", fontSize: 13 }}>No projects available</div>
                   }
                 </motion.div>
               )}
@@ -1930,16 +1938,16 @@ export default function RoadmapPage() {
               {tab === "INTERVIEW" && (
                 <motion.div key="interview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
-                    <div style={{ width: 38, height: 38, borderRadius: 11, background: "rgba(251,146,60,0.1)", border: "1px solid rgba(251,146,60,0.22)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, color: "#fb923c", flexShrink: 0 }}>◈</div>
+                    <div style={{ width: 38, height: 38, borderRadius: 11, background: "var(--warning)", border: "1px solid var(--warning-border)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, color: "var(--warning)", flexShrink: 0 }}>◈</div>
                     <div>
                       <div className="section-title" style={{ marginBottom: 0 }}>Interview Prep</div>
                       <div className="section-sub" style={{ marginBottom: 0 }}>{interview.length} stages · click a card to view details</div>
                     </div>
                   </div>
-                  <div style={{ height: 1, background: "linear-gradient(90deg,rgba(251,146,60,0.35),rgba(251,146,60,0.06),transparent)", margin: "16px 0 28px" }}/>
+                  <div style={{ height: 1, background: "linear-gradient(90deg,var(--warning-border),var(--warning),transparent)", margin: "16px 0 28px" }}/>
                   {interview.length
                     ? <InterviewTrackPanel interview={interview} progress={progress} setProgress={setProgress}/>
-                    : <div style={{ textAlign: "center", padding: "64px", color: "var(--text-faint)", fontSize: 13 }}>No interview prep available</div>
+                    : <div style={{ textAlign: "center", padding: "64px", color: "var(--t3)", fontSize: 13 }}>No interview prep available</div>
                   }
                 </motion.div>
               )}

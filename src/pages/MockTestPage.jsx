@@ -2,60 +2,121 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-// ── API ──────────────────────────────────────────────────────────────────────
-import mockAxios from "./../api/mocktestaxios";   // port 8081 — mock test service
-import axios from "./../api/axios";                // port 8080 — main service (roadmap, auth)
+import mockAxios from "./../api/mocktestaxios";
 import { generateRoadmap } from "./../api/roadmapApi";
 
-const startMockTest  = (payload) =>
-  mockAxios.post("/api/mocktest/start",  payload).then(r => r.data);
-const submitMockTest = (payload) =>
-  mockAxios.post("/api/mocktest/submit", payload).then(r => r.data);
+const startMockTest  = (p) => mockAxios.post("/api/mocktest/start",  p).then(r => r.data);
+const submitMockTest = (p) => mockAxios.post("/api/mocktest/submit", p).then(r => r.data);
 
-// ── Constants ────────────────────────────────────────────────────────────────
+/* ── Constants ─────────────────────────────────────────────────────────────── */
 const EXPERIENCE_OPTIONS = [
   { value: "0-6 months",  label: "< 6 months",  badge: "Fresher"   },
   { value: "6-12 months", label: "6–12 months", badge: "Junior"    },
   { value: "1-2 years",   label: "1–2 years",   badge: "Junior"    },
   { value: "2-4 years",   label: "2–4 years",   badge: "Mid-level" },
   { value: "4-7 years",   label: "4–7 years",   badge: "Senior"    },
-  { value: "7+ years",    label: "7+ years",    badge: "Principal" },
+  { value: "7+ years",    label: "7+ years",     badge: "Principal" },
 ];
-
-const LEVEL_OPTIONS      = ["Beginner", "Intermediate", "Advanced"];
-const TYPE_OPTIONS       = [
+const LEVEL_OPTIONS = ["Beginner", "Intermediate", "Advanced"];
+const TYPE_OPTIONS  = [
   { value: "mixed",   label: "Mixed",    desc: "20 MCQ + 5 Written" },
   { value: "quiz",    label: "MCQ Only", desc: "25 Multiple Choice" },
   { value: "writing", label: "Written",  desc: "25 Descriptive"     },
 ];
 const DIFFICULTY_OPTIONS = ["easy", "medium", "hard"];
 
-// ── Animation variants ────────────────────────────────────────────────────────
+/* ── Motion presets ────────────────────────────────────────────────────────── */
+const ease = [0.22, 1, 0.36, 1];
 const fadeUp = {
-  initial: { opacity: 0, y: 18 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.38, ease: [0.22, 1, 0.36, 1] } },
-  exit:    { opacity: 0, y: -10, transition: { duration: 0.2 } },
+  initial: { opacity: 0, y: 16 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.36, ease } },
+  exit:    { opacity: 0, y: -8,  transition: { duration: 0.18 } },
 };
-const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
+const stagger = { animate: { transition: { staggerChildren: 0.045 } } };
 
-// ── Difficulty badge color ────────────────────────────────────────────────────
-const diffColor = (d) =>
-  ({
-    easy:   { bg: "rgba(74,222,128,0.1)",  border: "rgba(74,222,128,0.3)",  text: "#4ade80" },
-    medium: { bg: "rgba(251,191,36,0.1)",  border: "rgba(251,191,36,0.3)",  text: "#fbbf24" },
-    hard:   { bg: "rgba(248,113,113,0.1)", border: "rgba(248,113,113,0.3)", text: "#f87171" },
-  }[d?.toLowerCase()] ?? { bg: "rgba(148,163,184,0.1)", border: "rgba(148,163,184,0.3)", text: "#94a3b8" });
+/* ── Helpers ───────────────────────────────────────────────────────────────── */
+const diffMeta = (d) => ({
+  easy:   { bg: "var(--success-bg)",  brd: "var(--success-brd)",  fg: "var(--success)",  label: "Easy"   },
+  medium: { bg: "var(--warn-bg)",     brd: "var(--warn-brd)",     fg: "var(--warn)",     label: "Medium" },
+  hard:   { bg: "var(--error-bg)",    brd: "var(--error-brd)",    fg: "var(--error)",    label: "Hard"   },
+}[d?.toLowerCase()] ?? { bg: "var(--srf)", brd: "var(--brd)", fg: "var(--t3)", label: d ?? "—" });
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function ProgressBar({ current, total }) {
-  const pct = total > 0 ? Math.min((current / total) * 100, 100) : 0;
+/* ── Shared sub-components ────────────────────────────────────────────────── */
+
+function Mono({ children, size = 11, color = "var(--t3)", style = {} }) {
   return (
-    <div style={{ height: 4, borderRadius: 4, background: "var(--border)", overflow: "hidden" }}>
-      <motion.div
-        animate={{ width: `${pct}%` }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        style={{ height: "100%", background: "var(--accent)", borderRadius: 4 }}
-      />
+    <span style={{ fontFamily: "var(--font-mono)", fontSize: size, color, letterSpacing: "0.1em", ...style }}>
+      {children}
+    </span>
+  );
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      <div style={{ width: 2, height: 16, background: "var(--a)", borderRadius: 1, flexShrink: 0 }} />
+      <Mono size={9} color="var(--a)" style={{ letterSpacing: "0.2em", textTransform: "uppercase" }}>
+        {children}
+      </Mono>
+    </div>
+  );
+}
+
+function FieldGroup({ label, children, style = {} }) {
+  return (
+    <div style={{ marginBottom: 22, ...style }}>
+      <Mono size={9} color="var(--t3)" style={{ display: "block", marginBottom: 8, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+        {label}
+      </Mono>
+      {children}
+    </div>
+  );
+}
+
+function TextInput({ value, onChange, placeholder, highlight }) {
+  return (
+    <input
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      style={{
+        width: "100%", boxSizing: "border-box",
+        height: 46, padding: "0 14px",
+        background: "var(--bg-2)",
+        border: `1px solid ${highlight && value ? "var(--a-brd)" : "var(--brd)"}`,
+        borderRadius: "var(--r-md)",
+        color: "var(--t1)",
+        fontFamily: "var(--font-sans)", fontSize: 13,
+        outline: "none",
+        transition: "border-color 150ms, box-shadow 150ms",
+      }}
+      onFocus={e => { e.target.style.borderColor = "var(--a-brd)"; e.target.style.boxShadow = "0 0 0 3px var(--a-dim)"; }}
+      onBlur={e  => { e.target.style.borderColor = (highlight && value) ? "var(--a-brd)" : "var(--brd)"; e.target.style.boxShadow = "none"; }}
+    />
+  );
+}
+
+function SegmentButton({ active, onClick, children, accentColor, style = {} }) {
+  return (
+    <button onClick={onClick}
+      style={{
+        padding: "10px 16px", borderRadius: "var(--r-sm)", cursor: "pointer",
+        background: active ? (accentColor ? `${accentColor}18` : "var(--a-dim)") : "var(--bg-1)",
+        border: `1px solid ${active ? (accentColor ?? "var(--a-brd)") : "var(--brd)"}`,
+        color: active ? (accentColor ?? "var(--a)") : "var(--t2)",
+        fontFamily: "var(--font-mono)", fontSize: 11, transition: "all 150ms",
+        outline: "none", ...style,
+      }}>
+      {children}
+    </button>
+  );
+}
+
+function ProgressBar({ pct, color = "var(--a)" }) {
+  return (
+    <div style={{ height: 3, background: "var(--brd)", borderRadius: 2, overflow: "hidden" }}>
+      <motion.div animate={{ width: `${pct}%` }} transition={{ duration: 0.4, ease: "easeOut" }}
+        style={{ height: "100%", background: color, borderRadius: 2 }} />
     </div>
   );
 }
@@ -70,62 +131,111 @@ function CountdownTimer({ minutes, onExpire }) {
     }), 1000);
     return () => clearInterval(id);
   }, []);
-  const m   = Math.floor(secs / 60), s = secs % 60;
-  const col = secs / (minutes * 60) > 0.5 ? "#4ade80" : secs / (minutes * 60) > 0.2 ? "#fbbf24" : "#f87171";
+  const ratio = secs / (minutes * 60);
+  const col = ratio > 0.5 ? "var(--success)" : ratio > 0.2 ? "var(--warn)" : "var(--error)";
+  const m = Math.floor(secs / 60), s = secs % 60;
   return (
-    <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 14, color: col, fontWeight: 700, display: "flex", gap: 6, alignItems: "center" }}>
-      <span>⏱</span>
-      <span>{String(m).padStart(2,"0")}:{String(s).padStart(2,"0")}</span>
+    <div style={{
+      display: "flex", alignItems: "center", gap: 7,
+      padding: "6px 12px",
+      background: `color-mix(in srgb, ${col} 10%, transparent)`,
+      border: `1px solid color-mix(in srgb, ${col} 35%, transparent)`,
+      borderRadius: "var(--r-pill)",
+    }}>
+      <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+        <circle cx="6" cy="6" r="5" stroke={col} strokeWidth="1.4"/>
+        <path d="M6 3.5V6l2 1.5" stroke={col} strokeWidth="1.4" strokeLinecap="round"/>
+      </svg>
+      <Mono size={12} color={col} style={{ fontWeight: 600 }}>
+        {String(m).padStart(2,"0")}:{String(s).padStart(2,"0")}
+      </Mono>
     </div>
   );
 }
 
-// ── MCQ card (quiz mode — answers hidden) ─────────────────────────────────────
+/* ── MCQ Card ──────────────────────────────────────────────────────────────── */
 function McqCard({ question, index, selected, onSelect }) {
-  const dc = diffColor(question.difficulty);
+  const dm = diffMeta(question.difficulty);
   return (
-    <motion.div variants={fadeUp} style={{
-      marginBottom: 24, padding: "20px 22px", borderRadius: 12,
-      background: "var(--surface)", border: `1px solid ${selected ? "var(--accent)" : "var(--border)"}`,
-      transition: "border-color 0.2s",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+    <motion.div
+      id={`q-${question.id}`}
+      variants={fadeUp}
+      style={{
+        marginBottom: 12,
+        background: "var(--bg-1)",
+        border: `1px solid ${selected ? "var(--a-brd)" : "var(--brd)"}`,
+        borderRadius: "var(--r-lg)",
+        overflow: "hidden",
+        transition: "border-color 200ms",
+      }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "12px 16px",
+        borderBottom: "1px solid var(--brd-lo)",
+        background: selected ? "var(--a-dim)" : "rgba(255,255,255,0.012)",
+      }}>
         <div style={{
-          width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-          border: "1px solid var(--accent)", display: "flex", alignItems: "center", justifyContent: "center",
-          color: "var(--accent)", fontFamily: "IBM Plex Mono, monospace", fontSize: 10, fontWeight: 700,
-        }}>{index}</div>
+          width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+          background: selected ? "var(--a-dim)" : "var(--srf)",
+          border: `1px solid ${selected ? "var(--a-brd)" : "var(--brd)"}`,
+          display: "grid", placeItems: "center",
+        }}>
+          <Mono size={10} color={selected ? "var(--a)" : "var(--t4)"} style={{ fontWeight: 600 }}>
+            {String(index).padStart(2, "0")}
+          </Mono>
+        </div>
         <span style={{
-          padding: "2px 10px", borderRadius: 12,
-          background: dc.bg, border: `1px solid ${dc.border}`, color: dc.text,
-          fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase",
-        }}>{question.difficulty}</span>
-        <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>{question.topic}</span>
-        <span style={{ marginLeft: "auto", fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>{question.points} pts</span>
+          padding: "2px 8px", borderRadius: "var(--r-pill)",
+          background: dm.bg, border: `1px solid ${dm.brd}`,
+          fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em",
+          textTransform: "uppercase", color: dm.fg,
+        }}>{dm.label}</span>
+        {question.topic && (
+          <Mono size={10} color="var(--t3)" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {question.topic}
+          </Mono>
+        )}
+        <Mono size={10} color="var(--t4)" style={{ marginLeft: "auto", flexShrink: 0 }}>
+          {question.points} pts
+        </Mono>
       </div>
-      <div style={{ fontSize: 14, lineHeight: 1.65, color: "var(--text)", fontFamily: "IBM Plex Mono, monospace", marginBottom: 14 }}>
-        {question.question}
+      <div style={{ padding: "14px 16px 0" }}>
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: 13.5, lineHeight: 1.65, color: "var(--t1)", margin: 0 }}>
+          {question.question}
+        </p>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {question.options?.map(opt => {
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "12px 16px 14px" }}>
+        {question.options?.map((opt, i) => {
           const isSel = selected === opt;
+          const letters = ["A","B","C","D","E"];
           return (
             <motion.button key={opt} onClick={() => onSelect(opt)}
-              whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }}
+              whileTap={{ scale: 0.995 }}
               style={{
-                padding: "9px 14px", borderRadius: 7, cursor: "pointer", textAlign: "left",
-                background: isSel ? "rgba(99,102,241,0.1)" : "var(--bg)",
-                border: `1px solid ${isSel ? "var(--accent)" : "var(--border)"}`,
-                color: isSel ? "var(--accent)" : "var(--text)",
-                fontFamily: "IBM Plex Mono, monospace", fontSize: 13, outline: "none",
-                display: "flex", alignItems: "center", gap: 10, transition: "all 0.15s",
-              }}>
+                padding: "10px 14px", borderRadius: "var(--r-sm)", cursor: "pointer", textAlign: "left",
+                background: isSel ? "var(--a-dim)" : "var(--bg-2)",
+                border: `1px solid ${isSel ? "var(--a-brd)" : "var(--brd)"}`,
+                display: "flex", alignItems: "center", gap: 10, outline: "none",
+                transition: "all 150ms",
+              }}
+              onMouseEnter={e => { if (!isSel) { e.currentTarget.style.borderColor = "var(--brd-hi)"; e.currentTarget.style.background = "var(--srf)"; }}}
+              onMouseLeave={e => { if (!isSel) { e.currentTarget.style.borderColor = "var(--brd)"; e.currentTarget.style.background = "var(--bg-2)"; }}}
+            >
               <div style={{
-                width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
-                border: `2px solid ${isSel ? "var(--accent)" : "var(--border)"}`,
-                background: isSel ? "var(--accent)" : "transparent", transition: "all 0.15s",
-              }} />
-              {opt}
+                width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+                background: isSel ? "var(--a)" : "var(--srf)",
+                border: `1px solid ${isSel ? "var(--a)" : "var(--brd)"}`,
+                display: "grid", placeItems: "center",
+                transition: "all 150ms",
+              }}>
+                {isSel
+                  ? <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2L7.5 2" stroke="var(--a-text)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  : <Mono size={8} color="var(--t4)" style={{ fontWeight: 600 }}>{letters[i]}</Mono>
+                }
+              </div>
+              <span style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: isSel ? "var(--a)" : "var(--t2)", flex: 1, transition: "color 150ms" }}>
+                {opt}
+              </span>
             </motion.button>
           );
         })}
@@ -134,225 +244,464 @@ function McqCard({ question, index, selected, onSelect }) {
   );
 }
 
-// ── MCQ review card (result mode) ─────────────────────────────────────────────
+/* ── Writing Card ──────────────────────────────────────────────────────────── */
+function WritingCard({ question, index, value, onChange }) {
+  const wc = value.trim() ? value.trim().split(/\s+/).length : 0;
+  const dm = diffMeta(question.difficulty);
+  const kps = question.expectedKeyPoints ?? [];
+  const filled = value?.trim().length > 0;
+  return (
+    <motion.div
+      id={`q-${question.id}`}
+      variants={fadeUp}
+      style={{
+        marginBottom: 12,
+        background: "var(--bg-1)",
+        border: `1px solid ${filled ? "var(--a-brd)" : "var(--brd)"}`,
+        borderRadius: "var(--r-lg)",
+        overflow: "hidden",
+        transition: "border-color 200ms",
+      }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "12px 16px",
+        borderBottom: "1px solid var(--brd-lo)",
+        background: filled ? "var(--a-dim)" : "rgba(255,255,255,0.012)",
+      }}>
+        <div style={{
+          width: 24, height: 24, borderRadius: 6, flexShrink: 0,
+          background: "var(--srf)", border: "1px solid var(--brd)",
+          display: "grid", placeItems: "center",
+        }}>
+          <Mono size={10} color="var(--a)" style={{ fontWeight: 600 }}>{String(index).padStart(2,"0")}</Mono>
+        </div>
+        <span style={{
+          padding: "2px 8px", borderRadius: "var(--r-pill)",
+          background: dm.bg, border: `1px solid ${dm.brd}`,
+          fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.12em",
+          textTransform: "uppercase", color: dm.fg,
+        }}>{dm.label}</span>
+        <span style={{
+          padding: "2px 8px", borderRadius: "var(--r-pill)",
+          background: "var(--info-bg)", border: "1px solid var(--info-brd)",
+          fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em",
+          textTransform: "uppercase", color: "var(--info)",
+        }}>Written</span>
+        {question.topic && <Mono size={10} color="var(--t3)" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{question.topic}</Mono>}
+        <Mono size={10} color="var(--t4)" style={{ marginLeft: "auto", flexShrink: 0 }}>{question.points} pts</Mono>
+      </div>
+      <div style={{ padding: "14px 16px 12px" }}>
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: 13.5, lineHeight: 1.65, color: "var(--t1)", margin: "0 0 12px" }}>
+          {question.question}
+        </p>
+        {kps.length > 0 && (
+          <div style={{
+            padding: "10px 12px", borderRadius: "var(--r-sm)",
+            background: "var(--bg-2)", border: "1px solid var(--brd)",
+            marginBottom: 12,
+          }}>
+            <Mono size={8} color="var(--t4)" style={{ display: "block", marginBottom: 7, letterSpacing: "0.14em", textTransform: "uppercase" }}>
+              Key points to cover
+            </Mono>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {kps.map((kp, i) => (
+                <span key={i} style={{
+                  padding: "2px 8px", borderRadius: "var(--r-pill)",
+                  background: "var(--a-dim)", border: "1px solid var(--a-brd)",
+                  fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--a)",
+                }}>{kp}</span>
+              ))}
+            </div>
+          </div>
+        )}
+        <textarea
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder="Write your answer here… (aim for 80–150 words)"
+          rows={5}
+          style={{
+            width: "100%", boxSizing: "border-box",
+            background: "var(--bg-2)",
+            border: `1px solid ${filled ? "var(--a-brd)" : "var(--brd)"}`,
+            borderRadius: "var(--r-sm)",
+            padding: "11px 13px",
+            color: "var(--t1)",
+            fontFamily: "var(--font-sans)", fontSize: 13,
+            outline: "none", resize: "vertical", lineHeight: 1.65,
+            transition: "border-color 150ms",
+          }}
+          onFocus={e => { e.target.style.borderColor = "var(--a-brd)"; e.target.style.boxShadow = "0 0 0 3px var(--a-dim)"; }}
+          onBlur={e  => { e.target.style.borderColor = filled ? "var(--a-brd)" : "var(--brd)"; e.target.style.boxShadow = "none"; }}
+        />
+        <div style={{ marginTop: 5, display: "flex", alignItems: "center", gap: 8 }}>
+          <div style={{ flex: 1, height: 2, background: "var(--brd)", borderRadius: 1, overflow: "hidden" }}>
+            <div style={{ height: "100%", width: `${Math.min((wc / 80) * 100, 100)}%`, background: wc >= 80 ? "var(--success)" : wc >= 30 ? "var(--a)" : "var(--t4)", borderRadius: 1, transition: "width 0.3s, background 0.3s" }}/>
+          </div>
+          <Mono size={10} color={wc >= 80 ? "var(--success)" : wc >= 30 ? "var(--a)" : "var(--t4)"}>
+            {wc} / 80 words
+          </Mono>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ── MCQ Review Card ───────────────────────────────────────────────────────── */
 function McqReviewCard({ question, index, userAnswer }) {
-  const dc         = diffColor(question.difficulty);
-  const correctAns = question.correctAnswer;
-  const isCorrect  = userAnswer === correctAns;
-  const isSkipped  = !userAnswer;
+  const dm = diffMeta(question.difficulty);
+  const correct = question.correctAnswer;
+  const isCorrect = userAnswer === correct;
+  const isSkipped = !userAnswer;
+  const statusColor = isSkipped ? "var(--t3)" : isCorrect ? "var(--success)" : "var(--error)";
+  const letters = ["A","B","C","D","E"];
   return (
     <motion.div variants={fadeUp} style={{
-      marginBottom: 24, padding: "20px 22px", borderRadius: 12,
-      background: "var(--surface)",
-      border: `1px solid ${isSkipped ? "var(--border)" : isCorrect ? "rgba(74,222,128,0.4)" : "rgba(248,113,113,0.4)"}`,
+      marginBottom: 10,
+      background: "var(--bg-1)",
+      border: `1px solid ${isSkipped ? "var(--brd)" : isCorrect ? "var(--success-brd)" : "var(--error-brd)"}`,
+      borderRadius: "var(--r-lg)", overflow: "hidden",
     }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <div style={{
-          width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-          border: `1px solid ${isSkipped ? "var(--muted)" : isCorrect ? "#4ade80" : "#f87171"}`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: isSkipped ? "var(--muted)" : isCorrect ? "#4ade80" : "#f87171",
-          fontFamily: "IBM Plex Mono, monospace", fontSize: 10, fontWeight: 700,
-        }}>{index}</div>
-        <span style={{
-          padding: "2px 10px", borderRadius: 12,
-          background: dc.bg, border: `1px solid ${dc.border}`, color: dc.text,
-          fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase",
-        }}>{question.difficulty}</span>
-        <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>{question.topic}</span>
-        <span style={{
-          marginLeft: "auto", fontFamily: "IBM Plex Mono, monospace", fontSize: 11,
-          color: isSkipped ? "var(--muted)" : isCorrect ? "#4ade80" : "#f87171", fontWeight: 600,
-        }}>
-          {isSkipped ? "Skipped · 0 pts" : isCorrect ? `✓ +${question.points} pts` : `✗ 0 pts`}
-        </span>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 10,
+        padding: "10px 16px",
+        background: isSkipped ? "transparent" : isCorrect ? "var(--success-bg)" : "var(--error-bg)",
+        borderBottom: "1px solid var(--brd-lo)",
+      }}>
+        <Mono size={10} color={statusColor} style={{ fontWeight: 700 }}>
+          {isSkipped ? "—" : isCorrect ? "✓" : "✗"}
+        </Mono>
+        <Mono size={9} color="var(--t4)" style={{ fontWeight: 600 }}>Q{String(index).padStart(2,"0")}</Mono>
+        <span style={{ padding: "2px 8px", borderRadius: "var(--r-pill)", background: dm.bg, border: `1px solid ${dm.brd}`, fontFamily: "var(--font-mono)", fontSize: 9, color: dm.fg }}>{dm.label}</span>
+        {question.topic && <Mono size={10} color="var(--t3)" style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{question.topic}</Mono>}
+        <Mono size={10} color={statusColor} style={{ marginLeft: "auto", fontWeight: 600 }}>
+          {isSkipped ? "Skipped · 0 pts" : isCorrect ? `+${question.points} pts` : "0 pts"}
+        </Mono>
       </div>
-      <div style={{ fontSize: 14, lineHeight: 1.65, color: "var(--text)", fontFamily: "IBM Plex Mono, monospace", marginBottom: 14 }}>
-        {question.question}
+      <div style={{ padding: "12px 16px 14px" }}>
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, lineHeight: 1.65, color: "var(--t1)", margin: "0 0 10px" }}>{question.question}</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+          {question.options?.map((opt, i) => {
+            const isC = opt === correct;
+            const isU = opt === userAnswer;
+            const bg    = isC ? "var(--success-bg)"  : (isU && !isCorrect) ? "var(--error-bg)"  : "var(--bg-2)";
+            const brd   = isC ? "var(--success-brd)" : (isU && !isCorrect) ? "var(--error-brd)" : "var(--brd)";
+            const color = isC ? "var(--success)"     : (isU && !isCorrect) ? "var(--error)"     : "var(--t3)";
+            return (
+              <div key={opt} style={{ padding: "8px 12px", borderRadius: "var(--r-sm)", background: bg, border: `1px solid ${brd}`, display: "flex", alignItems: "center", gap: 10 }}>
+                <Mono size={9} color={color} style={{ fontWeight: 700, width: 14 }}>{letters[i]}</Mono>
+                <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color, flex: 1 }}>{opt}</span>
+                {isC && <Mono size={8} color="var(--success)" style={{ textTransform: "uppercase", letterSpacing: "0.12em" }}>Correct</Mono>}
+                {isU && !isCorrect && <Mono size={8} color="var(--error)" style={{ textTransform: "uppercase", letterSpacing: "0.12em" }}>Your pick</Mono>}
+              </div>
+            );
+          })}
+        </div>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {question.options?.map(opt => {
-          const isCorrectOpt = opt === correctAns;
-          const isUserPick   = opt === userAnswer;
-          let bg = "var(--bg)", border = "var(--border)", color = "var(--text)", icon = null;
-          if (isCorrectOpt)             { bg = "rgba(74,222,128,0.08)";  border = "rgba(74,222,128,0.5)";  color = "#4ade80"; icon = "✓"; }
-          if (isUserPick && !isCorrect) { bg = "rgba(248,113,113,0.08)"; border = "rgba(248,113,113,0.5)"; color = "#f87171"; icon = "✗"; }
+    </motion.div>
+  );
+}
+
+/* ── Writing Review Card ───────────────────────────────────────────────────── */
+function WritingReviewCard({ question, index, userAnswer }) {
+  const dm = diffMeta(question.difficulty);
+  const kps = question.expectedKeyPoints ?? [];
+  const has = userAnswer?.trim().length > 0;
+  return (
+    <motion.div variants={fadeUp} style={{
+      marginBottom: 10, background: "var(--bg-1)",
+      border: `1px solid ${has ? "var(--a-brd)" : "var(--brd)"}`,
+      borderRadius: "var(--r-lg)", overflow: "hidden",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: has ? "var(--a-dim)" : "transparent", borderBottom: "1px solid var(--brd-lo)" }}>
+        <Mono size={9} color="var(--t4)" style={{ fontWeight: 600 }}>Q{String(index).padStart(2,"0")}</Mono>
+        <span style={{ padding: "2px 8px", borderRadius: "var(--r-pill)", background: dm.bg, border: `1px solid ${dm.brd}`, fontFamily: "var(--font-mono)", fontSize: 9, color: dm.fg }}>{dm.label}</span>
+        <span style={{ padding: "2px 8px", borderRadius: "var(--r-pill)", background: "var(--info-bg)", border: "1px solid var(--info-brd)", fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--info)" }}>Written</span>
+        <Mono size={10} color={has ? "var(--a)" : "var(--t4)"} style={{ marginLeft: "auto" }}>{has ? "Answered" : "Skipped"}</Mono>
+      </div>
+      <div style={{ padding: "12px 16px 14px" }}>
+        <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, lineHeight: 1.65, color: "var(--t1)", margin: "0 0 10px" }}>{question.question}</p>
+        <div style={{ padding: "10px 12px", borderRadius: "var(--r-sm)", background: "var(--bg-2)", border: `1px solid ${has ? "var(--a-brd)" : "var(--brd)"}`, marginBottom: kps.length ? 10 : 0 }}>
+          <Mono size={8} color="var(--a)" style={{ display: "block", marginBottom: 5, textTransform: "uppercase", letterSpacing: "0.14em" }}>Your Answer</Mono>
+          <p style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: has ? "var(--t1)" : "var(--t4)", lineHeight: 1.65, margin: 0, fontStyle: has ? "normal" : "italic" }}>
+            {has ? userAnswer : "No answer provided"}
+          </p>
+        </div>
+        {kps.length > 0 && (
+          <div style={{ padding: "10px 12px", borderRadius: "var(--r-sm)", background: "var(--success-bg)", border: "1px solid var(--success-brd)" }}>
+            <Mono size={8} color="var(--success)" style={{ display: "block", marginBottom: 7, textTransform: "uppercase", letterSpacing: "0.14em" }}>Model Key Points</Mono>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              {kps.map((kp, i) => (
+                <span key={i} style={{ padding: "2px 8px", borderRadius: "var(--r-pill)", background: "var(--success-bg)", border: "1px solid var(--success-brd)", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--success)" }}>{kp}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ── Left Rail ─────────────────────────────────────────────────────────────── */
+function PhaseRail({ phase, role, experience, difficulty, answered, totalQ, testData, allQ, mcqQ, answers }) {
+  const phases = [
+    { id: "form",      label: "Setup",      num: "01" },
+    { id: "loading",   label: "Generating", num: "02" },
+    { id: "quiz",      label: "Assessment", num: "03" },
+    { id: "submitting",label: "Scoring",    num: "04" },
+    { id: "result",    label: "Report",     num: "05" },
+  ];
+  const phaseOrder = phases.map(p => p.id);
+  const currentIdx = phaseOrder.indexOf(phase);
+  const pct = totalQ > 0 ? Math.round((answered / totalQ) * 100) : 0;
+
+  /* Topic breakdown from questions */
+  const topicMap = (allQ ?? []).reduce((acc, q) => {
+    const t = q.topic || "General";
+    acc[t] = (acc[t] || 0) + 1;
+    return acc;
+  }, {});
+  const topics = Object.entries(topicMap).sort((a, b) => b[1] - a[1]);
+  const maxTopicCount = topics[0]?.[1] ?? 1;
+
+  /* Correct count for MCQ */
+  const correctCount = (mcqQ ?? []).filter(q => (answers ?? {})[String(q.id)] === q.correctAnswer).length;
+
+  const scrollToQ = (qId) => {
+    document.getElementById(`q-${qId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  return (
+    <div style={{
+      width: 240, flexShrink: 0,
+      background: "var(--bg-1)",
+      borderRight: "1px solid var(--brd)",
+      display: "flex", flexDirection: "column",
+      position: "sticky", top: 0, height: "100vh",
+      overflowY: "auto",
+    }}>
+      {/* Logo / title */}
+      <div style={{ padding: "20px 18px 16px", borderBottom: "1px solid var(--brd)", flexShrink: 0 }}>
+        <Mono size={8} color="var(--t4)" style={{ display: "block", marginBottom: 4, letterSpacing: "0.2em", textTransform: "uppercase" }}>
+          CareerAI
+        </Mono>
+        <div style={{ fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 800, color: "var(--t1)", letterSpacing: "-0.02em" }}>
+          Mock Assessment
+        </div>
+      </div>
+
+      {/* Phase steps */}
+      <div style={{ padding: "12px 0", borderBottom: "1px solid var(--brd)", flexShrink: 0 }}>
+        {phases.map((p, i) => {
+          const done   = i < currentIdx;
+          const active = i === currentIdx;
           return (
-            <div key={opt} style={{
-              padding: "9px 14px", borderRadius: 7, textAlign: "left",
-              background: bg, border: `1px solid ${border}`, color,
-              fontFamily: "IBM Plex Mono, monospace", fontSize: 13,
-              display: "flex", alignItems: "center", gap: 10,
-            }}>
+            <div key={p.id} style={{ position: "relative" }}>
+              {i < phases.length - 1 && (
+                <div style={{
+                  position: "absolute", left: 29, top: 34, width: 1, height: 14,
+                  background: done ? "var(--a)" : "var(--brd)",
+                  transition: "background 0.4s",
+                }} />
+              )}
               <div style={{
-                width: 14, height: 14, borderRadius: "50%", flexShrink: 0,
-                border: `2px solid ${border}`,
-                background: isCorrectOpt || (isUserPick && !isCorrect) ? border : "transparent",
-              }} />
-              <span style={{ flex: 1 }}>{opt}</span>
-              {icon && <span style={{ fontSize: 12, fontWeight: 700 }}>{icon}</span>}
-              {isCorrectOpt && <span style={{ fontSize: 10, color: "#4ade80", fontFamily: "IBM Plex Mono, monospace" }}>CORRECT</span>}
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "7px 18px",
+                background: active ? "var(--a-dim)" : "transparent",
+                borderLeft: `2px solid ${active ? "var(--a)" : "transparent"}`,
+                transition: "all 150ms",
+              }}>
+                <div style={{
+                  width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                  background: done ? "var(--a)" : active ? "var(--a-dim)" : "var(--srf)",
+                  border: `1.5px solid ${done ? "var(--a)" : active ? "var(--a-brd)" : "var(--brd)"}`,
+                  display: "grid", placeItems: "center",
+                  boxShadow: active ? "0 0 8px var(--a-glow)" : "none",
+                  transition: "all 0.3s",
+                  opacity: i > currentIdx ? 0.4 : 1,
+                }}>
+                  {done
+                    ? <svg width="8" height="8" viewBox="0 0 9 9" fill="none"><path d="M1.5 4.5l2 2L7.5 2" stroke="var(--a-text)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    : <Mono size={8} color={active ? "var(--a)" : "var(--t4)"} style={{ fontWeight: 700 }}>{p.num}</Mono>
+                  }
+                </div>
+                <div>
+                  <div style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: active ? 700 : 500, color: active ? "var(--a)" : done ? "var(--t1)" : "var(--t4)", transition: "color 150ms" }}>
+                    {p.label}
+                  </div>
+                  {active && p.id === "quiz" && totalQ > 0 && (
+                    <Mono size={9} color="var(--t3)">{answered}/{totalQ} answered</Mono>
+                  )}
+                </div>
+              </div>
             </div>
           );
         })}
       </div>
-    </motion.div>
-  );
-}
 
-// ── Writing card (quiz mode) ──────────────────────────────────────────────────
-function WritingCard({ question, index, value, onChange }) {
-  const wc  = value.trim() ? value.trim().split(/\s+/).length : 0;
-  const dc  = diffColor(question.difficulty);
-  const kps = question.expectedKeyPoints ?? [];
-  return (
-    <motion.div variants={fadeUp} style={{
-      marginBottom: 24, padding: "20px 22px", borderRadius: 12,
-      background: "var(--surface)",
-      border: `1px solid ${value?.trim() ? "#a78bfa55" : "var(--border)"}`,
-      transition: "border-color 0.2s",
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <div style={{
-          width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-          border: "1px solid #a78bfa", display: "flex", alignItems: "center", justifyContent: "center",
-          color: "#a78bfa", fontFamily: "IBM Plex Mono, monospace", fontSize: 10, fontWeight: 700,
-        }}>{index}</div>
-        <span style={{
-          padding: "2px 10px", borderRadius: 12,
-          background: dc.bg, border: `1px solid ${dc.border}`, color: dc.text,
-          fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase",
-        }}>{question.difficulty}</span>
-        <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "#a78bfa" }}>✍ Written</span>
-        <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>{question.topic}</span>
-        <span style={{ marginLeft: "auto", fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>{question.points} pts</span>
-      </div>
-      <div style={{ fontSize: 14, lineHeight: 1.65, color: "var(--text)", fontFamily: "IBM Plex Mono, monospace", marginBottom: 12 }}>
-        {question.question}
-      </div>
-      {kps.length > 0 && (
-        <div style={{ padding: "10px 12px", borderRadius: 7, background: "var(--bg)", border: "1px solid var(--border)", marginBottom: 12 }}>
-          <div style={{ fontSize: 10, color: "var(--muted)", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
-            Key points to cover
+      {/* ── QUIZ-ONLY SECTIONS ── */}
+      {phase === "quiz" && allQ.length > 0 && (
+        <>
+          {/* Question Navigator */}
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--brd)", flexShrink: 0 }}>
+            <SectionLabel>Question Navigator</SectionLabel>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 4 }}>
+              {allQ.map((q, i) => {
+                const id = String(q.id);
+                const isAnswered = !!answers[id];
+                const isWrite = q.type === "writing";
+                const writeIdx = i - mcqQ.length + 1;
+                return (
+                  <div
+                    key={q.id}
+                    onClick={() => scrollToQ(q.id)}
+                    title={q.topic || (isWrite ? "Written" : "MCQ")}
+                    style={{
+                      aspectRatio: "1", borderRadius: 4, cursor: "pointer",
+                      background: isAnswered
+                        ? (isWrite ? "var(--info-bg)" : "var(--a-dim)")
+                        : "var(--srf)",
+                      border: `1px ${isWrite ? "dashed" : "solid"} ${
+                        isAnswered
+                          ? (isWrite ? "var(--info-brd)" : "var(--a-brd)")
+                          : "var(--brd)"
+                      }`,
+                      display: "grid", placeItems: "center",
+                      fontFamily: "var(--font-mono)", fontSize: 8, fontWeight: 600,
+                      color: isAnswered
+                        ? (isWrite ? "var(--info)" : "var(--a)")
+                        : "var(--t4)",
+                      transition: "all 100ms",
+                      userSelect: "none",
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = isWrite ? "var(--info-brd)" : "var(--a-brd)"; }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.borderColor = isAnswered
+                        ? (isWrite ? "var(--info-brd)" : "var(--a-brd)")
+                        : "var(--brd)";
+                    }}
+                  >
+                    {isWrite ? `W${writeIdx}` : String(i + 1).padStart(2, "0")}
+                  </div>
+                );
+              })}
+            </div>
+            {/* Legend */}
+            <div style={{ display: "flex", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+              {[
+                { bg: "var(--a-dim)", brd: "var(--a-brd)", dashed: false, label: "MCQ done" },
+                { bg: "var(--info-bg)", brd: "var(--info-brd)", dashed: true, label: "Written" },
+                { bg: "var(--srf)", brd: "var(--brd)", dashed: false, label: "Pending" },
+              ].map(l => (
+                <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div style={{
+                    width: 8, height: 8, borderRadius: 2, flexShrink: 0,
+                    background: l.bg,
+                    border: `1px ${l.dashed ? "dashed" : "solid"} ${l.brd}`,
+                  }} />
+                  <Mono size={8} color="var(--t3)">{l.label}</Mono>
+                </div>
+              ))}
+            </div>
           </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {kps.map((kp, i) => (
-              <span key={i} style={{
-                padding: "2px 8px", borderRadius: 10,
-                background: "rgba(167,139,250,0.08)", border: "1px solid rgba(167,139,250,0.2)", color: "#a78bfa",
-                fontFamily: "IBM Plex Mono, monospace", fontSize: 11,
-              }}>{kp}</span>
-            ))}
+
+          {/* Session Stats */}
+          <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--brd)", flexShrink: 0 }}>
+            <SectionLabel>Session Stats</SectionLabel>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              {[
+                { val: answered,           label: "Answered",  color: "var(--a)"       },
+                { val: totalQ - answered,  label: "Remaining", color: "var(--t3)"      },
+                { val: correctCount,       label: "Correct",   color: "var(--success)" },
+                { val: totalQ,             label: "Total Qs",  color: "var(--t2)"      },
+              ].map(s => (
+                <div key={s.label} style={{
+                  background: "var(--srf)", border: "1px solid var(--brd)",
+                  borderRadius: "var(--r-md)", padding: "10px 12px",
+                }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 20, fontWeight: 800, color: s.color, lineHeight: 1 }}>
+                    {s.val}
+                  </div>
+                  <Mono size={8} color="var(--t4)" style={{ display: "block", marginTop: 4, textTransform: "uppercase", letterSpacing: "0.12em" }}>
+                    {s.label}
+                  </Mono>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Topics Breakdown */}
+          {topics.length > 0 && (
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--brd)", flexShrink: 0 }}>
+              <SectionLabel>Topics</SectionLabel>
+              <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                {topics.map(([topic, count]) => (
+                  <div key={topic} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{
+                      fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--t2)",
+                      flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>{topic}</span>
+                    <div style={{ width: 50, height: 3, background: "var(--brd)", borderRadius: 2, overflow: "hidden", flexShrink: 0 }}>
+                      <div style={{
+                        height: "100%",
+                        width: `${(count / maxTopicCount) * 100}%`,
+                        background: "var(--a)", borderRadius: 2,
+                        transition: "width 0.4s ease",
+                      }} />
+                    </div>
+                    <Mono size={8} color="var(--t4)" style={{ width: 14, textAlign: "right", flexShrink: 0 }}>{count}</Mono>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Metadata + progress (always shown when data exists) */}
+      {(role || experience || difficulty) && (
+        <div style={{ padding: "16px 18px", marginTop: phase === "quiz" ? 0 : "auto" }}>
+          {[
+            { k: "Role",       v: role || "—" },
+            { k: "Experience", v: experience || "—" },
+            { k: "Difficulty", v: difficulty || "—" },
+          ].map(({ k, v }) => (
+            <div key={k} style={{ marginBottom: 10 }}>
+              <Mono size={8} color="var(--t4)" style={{ display: "block", marginBottom: 2, textTransform: "uppercase", letterSpacing: "0.14em" }}>{k}</Mono>
+              <div style={{ fontFamily: "var(--font-sans)", fontSize: 11, fontWeight: 600, color: "var(--t2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v}</div>
+            </div>
+          ))}
+          {phase === "quiz" && totalQ > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                <Mono size={8} color="var(--t4)" style={{ textTransform: "uppercase", letterSpacing: "0.14em" }}>Progress</Mono>
+                <Mono size={9} color="var(--a)">{pct}%</Mono>
+              </div>
+              <ProgressBar pct={pct} />
+            </div>
+          )}
         </div>
       )}
-      <textarea
-        value={value} onChange={e => onChange(e.target.value)}
-        placeholder="Write your answer here... (aim for 80–150 words)"
-        rows={5}
-        style={{
-          width: "100%", boxSizing: "border-box", background: "var(--bg)",
-          border: `1px solid ${value ? "#a78bfa66" : "var(--border)"}`,
-          borderRadius: 8, padding: "11px 13px", color: "var(--text)", fontSize: 13,
-          fontFamily: "IBM Plex Mono, monospace", outline: "none", resize: "vertical",
-          lineHeight: 1.65, transition: "border-color 0.2s",
-        }}
-      />
-      <div style={{ marginTop: 5, fontSize: 11, fontFamily: "IBM Plex Mono, monospace", color: wc >= 30 ? "#4ade80" : "var(--muted)" }}>
-        {wc} words {wc > 0 && wc < 30 ? "· keep writing..." : wc >= 30 ? "· ✓ good" : ""}
-      </div>
-    </motion.div>
+    </div>
   );
 }
 
-// ── Writing review card (result mode) ────────────────────────────────────────
-function WritingReviewCard({ question, index, userAnswer }) {
-  const dc     = diffColor(question.difficulty);
-  const kps    = question.expectedKeyPoints ?? [];
-  const hasAns = userAnswer && userAnswer.trim().length > 0;
-  return (
-    <motion.div variants={fadeUp} style={{
-      marginBottom: 24, padding: "20px 22px", borderRadius: 12,
-      background: "var(--surface)",
-      border: `1px solid ${hasAns ? "rgba(167,139,250,0.4)" : "var(--border)"}`,
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
-        <div style={{
-          width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-          border: `1px solid ${hasAns ? "#a78bfa" : "var(--muted)"}`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: hasAns ? "#a78bfa" : "var(--muted)",
-          fontFamily: "IBM Plex Mono, monospace", fontSize: 10, fontWeight: 700,
-        }}>{index}</div>
-        <span style={{
-          padding: "2px 10px", borderRadius: 12,
-          background: dc.bg, border: `1px solid ${dc.border}`, color: dc.text,
-          fontFamily: "IBM Plex Mono, monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase",
-        }}>{question.difficulty}</span>
-        <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "#a78bfa" }}>✍ Written</span>
-        <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>{question.topic}</span>
-        <span style={{ marginLeft: "auto", fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: hasAns ? "#a78bfa" : "var(--muted)" }}>
-          {hasAns ? "Answered" : "Skipped"}
-        </span>
-      </div>
-      <div style={{ fontSize: 14, lineHeight: 1.65, color: "var(--text)", fontFamily: "IBM Plex Mono, monospace", marginBottom: 12 }}>
-        {question.question}
-      </div>
-      <div style={{ padding: "12px 14px", borderRadius: 8, background: "var(--bg)", border: `1px solid ${hasAns ? "rgba(167,139,250,0.3)" : "var(--border)"}`, marginBottom: 12 }}>
-        <div style={{ fontSize: 10, color: "#a78bfa", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
-          Your Answer
-        </div>
-        <div style={{ fontSize: 13, color: hasAns ? "var(--text)" : "var(--muted)", fontFamily: "IBM Plex Mono, monospace", lineHeight: 1.65, fontStyle: hasAns ? "normal" : "italic" }}>
-          {hasAns ? userAnswer : "No answer provided"}
-        </div>
-      </div>
-      {kps.length > 0 && (
-        <div style={{ padding: "10px 12px", borderRadius: 7, background: "var(--bg)", border: "1px solid rgba(74,222,128,0.2)" }}>
-          <div style={{ fontSize: 10, color: "#4ade80", fontFamily: "IBM Plex Mono, monospace", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
-            Model Key Points
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {kps.map((kp, i) => (
-              <span key={i} style={{
-                padding: "2px 8px", borderRadius: 10,
-                background: "rgba(74,222,128,0.08)", border: "1px solid rgba(74,222,128,0.2)", color: "#4ade80",
-                fontFamily: "IBM Plex Mono, monospace", fontSize: 11,
-              }}>{kp}</span>
-            ))}
-          </div>
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-// ── Report card ───────────────────────────────────────────────────────────────
+/* ── Result / Report ───────────────────────────────────────────────────────── */
 function ReportCard({ result, role, allQ, answers, onViewRoadmap, onGenerateRoadmap }) {
-  const [showReview,        setShowReview]        = useState(false);
-  const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
-  const [roadmapError,      setRoadmapError]      = useState(null);
+  const [showReview,  setShowReview]  = useState(false);
+  const [genLoading,  setGenLoading]  = useState(false);
+  const [genError,    setGenError]    = useState(null);
 
-  const levelMeta = {
-    BEGINNER:     { color: "#4ade80", bg: "rgba(74,222,128,0.08)",  border: "rgba(74,222,128,0.3)"  },
-    INTERMEDIATE: { color: "#fbbf24", bg: "rgba(251,191,36,0.08)",  border: "rgba(251,191,36,0.3)"  },
-    ADVANCED:     { color: "#818cf8", bg: "rgba(129,140,248,0.1)",  border: "rgba(129,140,248,0.35)" },
+  const levelColor = { BEGINNER: "var(--success)", INTERMEDIATE: "var(--warn)", ADVANCED: "var(--a)" };
+  const readyMeta  = {
+    "Not Ready":       { color: "var(--error)",   icon: "✗" },
+    "Partially Ready": { color: "var(--warn)",    icon: "◐" },
+    "Ready":           { color: "var(--success)", icon: "✓" },
   };
-  const readinessMeta = {
-    "Not Ready":       { color: "#f87171", icon: "✗" },
-    "Partially Ready": { color: "#fbbf24", icon: "◐" },
-    "Ready":           { color: "#4ade80", icon: "✓" },
-  };
-
-  const lm = levelMeta[result.detectedLevel] ?? levelMeta.INTERMEDIATE;
-  const rm = readinessMeta[result.interviewReadiness] ?? readinessMeta["Partially Ready"];
 
   const parseScore = (s) => {
-    if (!s) return { pct: 0, raw: "0/0" };
-    const parts = s.split("/");
-    if (parts.length === 2) {
-      const pct = Math.round((parseFloat(parts[0]) / parseFloat(parts[1])) * 100) || 0;
-      return { pct, raw: s };
-    }
+    if (!s) return { pct: 0, raw: "—" };
+    const [a, b] = String(s).split("/");
+    if (b) return { pct: Math.round((parseFloat(a) / parseFloat(b)) * 100) || 0, raw: s };
     return { pct: parseInt(s) || 0, raw: s };
   };
 
@@ -361,248 +710,179 @@ function ReportCard({ result, role, allQ, answers, onViewRoadmap, onGenerateRoad
   const writing = parseScore(result.writingScore ?? result.codingScore);
   const mcqQ    = allQ.filter(q => q.type === "mcq");
   const writeQ  = allQ.filter(q => q.type === "writing");
+  const rm      = readyMeta[result.interviewReadiness] ?? readyMeta["Partially Ready"];
+  const lc      = levelColor[result.detectedLevel] ?? "var(--a)";
 
-  const handleGenerateRoadmap = async () => {
-    setGeneratingRoadmap(true);
-    setRoadmapError(null);
-    try {
-      await onGenerateRoadmap();
-    } catch (e) {
-      setRoadmapError("Failed to generate roadmap. Please try again.");
-    } finally {
-      setGeneratingRoadmap(false);
-    }
+  const handleGenerate = async () => {
+    setGenLoading(true); setGenError(null);
+    try { await onGenerateRoadmap(); }
+    catch { setGenError("Failed to generate roadmap. Please try again."); }
+    finally { setGenLoading(false); }
   };
 
   return (
-    <motion.div variants={stagger} initial="initial" animate="animate">
-
-      {/* Hero score */}
+    <motion.div variants={stagger} initial="initial" animate="animate" style={{ maxWidth: 760 }}>
       <motion.div variants={fadeUp} style={{
-        padding: "32px", borderRadius: 16, background: "var(--surface)",
-        border: "1px solid var(--border)", textAlign: "center", marginBottom: 16,
+        background: "var(--bg-1)", border: "1px solid var(--brd)", borderRadius: "var(--r-xl)",
+        overflow: "hidden", marginBottom: 12,
       }}>
-        <div style={{ fontSize: 40, marginBottom: 12 }}>◎</div>
-        <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, letterSpacing: "0.15em", color: "var(--muted)", textTransform: "uppercase", marginBottom: 16 }}>
-          Assessment Complete · {role}
-        </div>
-        <div style={{
-          display: "inline-flex", flexDirection: "column", alignItems: "center",
-          padding: "20px 40px", borderRadius: 12, background: "var(--bg)",
-          border: "1px solid var(--border)", marginBottom: 20,
-        }}>
-          <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 52, fontWeight: 800, color: "var(--text)", lineHeight: 1 }}>
-            {overall.pct}<span style={{ fontSize: 24, color: "var(--muted)" }}>%</span>
-          </div>
-          <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 13, color: "var(--muted)", marginTop: 4 }}>
-            {overall.raw} points
-          </div>
-        </div>
-        <div style={{ marginBottom: 20 }}>
-          <span style={{
-            display: "inline-block", padding: "7px 24px", borderRadius: 20,
-            background: lm.bg, border: `1px solid ${lm.border}`, color: lm.color,
-            fontFamily: "IBM Plex Mono, monospace", fontSize: 14, fontWeight: 700, letterSpacing: "0.12em",
-          }}>{result.detectedLevel}</span>
-          {result.statedLevel && result.detectedLevel && (
-            <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)", marginTop: 8 }}>
-              You said: {result.statedLevel} → We detected: {result.detectedLevel}
-            </div>
-          )}
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+        <div style={{ height: 2, background: `linear-gradient(90deg, var(--a) 0%, ${lc} 60%, transparent 100%)` }} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", borderBottom: "1px solid var(--brd)" }}>
           {[
-            { label: "MCQ Score",       value: mcq.raw,                           sub: `${mcq.pct}%`     },
-            { label: "Writing",         value: writing.raw,                        sub: `${writing.pct}%` },
-            { label: "Tech Depth",      value: `${result.technicalDepthScore}/10`, sub: "depth"           },
-            { label: "Problem Solving", value: `${result.problemSolvingScore}/10`, sub: "logic"           },
-          ].map(item => (
-            <div key={item.label} style={{
-              padding: "12px 8px", borderRadius: 8, background: "var(--bg)", border: "1px solid var(--border)",
+            { label: "Overall Score", value: `${overall.pct}%`, sub: overall.raw, accent: lc },
+            { label: "MCQ Score",     value: `${mcq.pct}%`,     sub: mcq.raw,     accent: "var(--a)" },
+            { label: "Written Score", value: `${writing.pct}%`, sub: writing.raw, accent: "var(--info)" },
+            { label: "Depth",         value: `${result.technicalDepthScore ?? "—"}/10`, sub: "technical", accent: "var(--warn)" },
+          ].map((s, i) => (
+            <div key={s.label} style={{
+              padding: "20px 18px",
+              borderRight: i < 3 ? "1px solid var(--brd)" : "none",
+              background: i === 0 ? `${lc}08` : "transparent",
             }}>
-              <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 16, fontWeight: 700, color: "var(--text)" }}>{item.value}</div>
-              <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 10, color: "var(--muted)", marginTop: 3, textTransform: "uppercase", letterSpacing: "0.08em" }}>{item.label}</div>
+              <Mono size={8} color="var(--t4)" style={{ display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.14em" }}>{s.label}</Mono>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 800, color: s.accent, letterSpacing: "-0.03em", lineHeight: 1 }}>
+                {s.value}
+              </div>
+              <Mono size={9} color="var(--t4)" style={{ marginTop: 4 }}>{s.sub}</Mono>
             </div>
           ))}
         </div>
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 8,
-          padding: "8px 20px", borderRadius: 20,
-          background: `${rm.color}15`, border: `1px solid ${rm.color}44`,
-        }}>
-          <span style={{ color: rm.color, fontSize: 14 }}>{rm.icon}</span>
-          <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 12, color: rm.color, fontWeight: 600 }}>
-            Interview Readiness: {result.interviewReadiness}
-          </span>
-          <span style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>
-            · Confidence: {result.confidenceLevel}
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 18px", flexWrap: "wrap" }}>
+          <span style={{
+            padding: "5px 14px", borderRadius: "var(--r-pill)",
+            background: `${lc}14`, border: `1px solid ${lc}40`,
+            fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 700,
+            letterSpacing: "0.1em", color: lc,
+          }}>{result.detectedLevel}</span>
+          <div style={{ display: "flex", alignItems: "center", gap: 7, padding: "5px 14px", borderRadius: "var(--r-pill)", background: `color-mix(in srgb, ${rm.color} 10%, transparent)`, border: `1px solid color-mix(in srgb, ${rm.color} 30%, transparent)` }}>
+            <Mono size={11} color={rm.color} style={{ fontWeight: 700 }}>{rm.icon}</Mono>
+            <Mono size={11} color={rm.color} style={{ fontWeight: 600 }}>Interview: {result.interviewReadiness}</Mono>
+          </div>
+          {result.statedLevel && (
+            <Mono size={10} color="var(--t4)" style={{ marginLeft: "auto" }}>
+              Self-assessed: {result.statedLevel} → Detected: <span style={{ color: lc }}>{result.detectedLevel}</span>
+            </Mono>
+          )}
         </div>
       </motion.div>
 
-      {/* Final Verdict */}
       {result.finalVerdict && (
-        <motion.div variants={fadeUp} style={{
-          padding: "18px 20px", borderRadius: 12, background: "var(--surface)",
-          border: "1px solid var(--border)", marginBottom: 16,
-        }}>
-          <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, letterSpacing: "0.12em", color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>
-            Final Verdict
-          </div>
-          <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 13, color: "var(--text)", lineHeight: 1.7 }}>
-            {result.finalVerdict}
-          </div>
+        <motion.div variants={fadeUp} style={{ padding: "16px 20px", borderRadius: "var(--r-lg)", background: "var(--bg-1)", border: "1px solid var(--brd)", marginBottom: 12 }}>
+          <SectionLabel>Final Verdict</SectionLabel>
+          <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--t2)", lineHeight: 1.7, margin: 0 }}>{result.finalVerdict}</p>
         </motion.div>
       )}
 
-      {/* Strengths / Weak areas */}
-      <motion.div variants={fadeUp} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 16 }}>
-        <div style={{ padding: "16px 18px", borderRadius: 12, background: "var(--surface)", border: "1px solid rgba(74,222,128,0.2)" }}>
-          <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, letterSpacing: "0.12em", color: "#4ade80", textTransform: "uppercase", marginBottom: 10 }}>✓ Strengths</div>
-          {(result.strengths ?? []).map((s, i) => (
-            <div key={i} style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 12, color: "var(--text)", lineHeight: 1.6, marginBottom: 4, display: "flex", gap: 8 }}>
-              <span style={{ color: "#4ade80", flexShrink: 0 }}>→</span>{s}
-            </div>
-          ))}
+      <motion.div variants={fadeUp} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+        <div style={{ padding: "16px 18px", borderRadius: "var(--r-lg)", background: "var(--bg-1)", border: "1px solid var(--success-brd)" }}>
+          <SectionLabel>Strengths</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {(result.strengths ?? []).map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
+                <span style={{ color: "var(--success)", fontFamily: "var(--font-mono)", fontSize: 10, marginTop: 2, flexShrink: 0 }}>→</span>
+                <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--t2)", lineHeight: 1.55 }}>{s}</span>
+              </div>
+            ))}
+          </div>
         </div>
-        <div style={{ padding: "16px 18px", borderRadius: 12, background: "var(--surface)", border: "1px solid rgba(248,113,113,0.2)" }}>
-          <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, letterSpacing: "0.12em", color: "#f87171", textTransform: "uppercase", marginBottom: 10 }}>✗ Weak Areas</div>
-          {(result.weakAreas ?? []).map((s, i) => (
-            <div key={i} style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 12, color: "var(--text)", lineHeight: 1.6, marginBottom: 4, display: "flex", gap: 8 }}>
-              <span style={{ color: "#f87171", flexShrink: 0 }}>→</span>{s}
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Must learn next */}
-      <motion.div variants={fadeUp} style={{ padding: "16px 18px", borderRadius: 12, background: "var(--surface)", border: "1px solid rgba(251,191,36,0.2)", marginBottom: 16 }}>
-        <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, letterSpacing: "0.12em", color: "#fbbf24", textTransform: "uppercase", marginBottom: 10 }}>⚡ Must Learn Next</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {(result.mustLearnNext ?? []).map((item, i) => (
-            <span key={i} style={{
-              padding: "4px 12px", borderRadius: 14,
-              background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.25)",
-              color: "#fbbf24", fontFamily: "IBM Plex Mono, monospace", fontSize: 12,
-            }}>{item}</span>
-          ))}
+        <div style={{ padding: "16px 18px", borderRadius: "var(--r-lg)", background: "var(--bg-1)", border: "1px solid var(--error-brd)" }}>
+          <SectionLabel>Weak Areas</SectionLabel>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {(result.weakAreas ?? []).map((s, i) => (
+              <div key={i} style={{ display: "flex", gap: 9, alignItems: "flex-start" }}>
+                <span style={{ color: "var(--error)", fontFamily: "var(--font-mono)", fontSize: 10, marginTop: 2, flexShrink: 0 }}>→</span>
+                <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color: "var(--t2)", lineHeight: 1.55 }}>{s}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </motion.div>
 
-      {/* Recommended topics */}
-      <motion.div variants={fadeUp} style={{ padding: "16px 18px", borderRadius: 12, background: "var(--surface)", border: "1px solid rgba(129,140,248,0.2)", marginBottom: 20 }}>
-        <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, letterSpacing: "0.12em", color: "#818cf8", textTransform: "uppercase", marginBottom: 10 }}>◈ Recommended Topics</div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {(result.recommendedTopics ?? []).map((item, i) => (
-            <span key={i} style={{
-              padding: "4px 12px", borderRadius: 14,
-              background: "rgba(129,140,248,0.08)", border: "1px solid rgba(129,140,248,0.25)",
-              color: "#818cf8", fontFamily: "IBM Plex Mono, monospace", fontSize: 12,
-            }}>{item}</span>
-          ))}
+      <motion.div variants={fadeUp} style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 16 }}>
+        <div style={{ padding: "16px 18px", borderRadius: "var(--r-lg)", background: "var(--bg-1)", border: "1px solid var(--warn-brd)" }}>
+          <SectionLabel>Must Learn Next</SectionLabel>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {(result.mustLearnNext ?? []).map((it, i) => (
+              <span key={i} style={{ padding: "3px 10px", borderRadius: "var(--r-pill)", background: "var(--warn-bg)", border: "1px solid var(--warn-brd)", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--warn)" }}>{it}</span>
+            ))}
+          </div>
+        </div>
+        <div style={{ padding: "16px 18px", borderRadius: "var(--r-lg)", background: "var(--bg-1)", border: "1px solid var(--a-brd)" }}>
+          <SectionLabel>Recommended Topics</SectionLabel>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {(result.recommendedTopics ?? []).map((it, i) => (
+              <span key={i} style={{ padding: "3px 10px", borderRadius: "var(--r-pill)", background: "var(--a-dim)", border: "1px solid var(--a-brd)", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--a)" }}>{it}</span>
+            ))}
+          </div>
         </div>
       </motion.div>
 
-      {/* CTAs */}
-      <motion.div variants={fadeUp} style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
-
-        {/* Roadmap error */}
-        {roadmapError && (
-          <div style={{
-            padding: "10px 14px", borderRadius: 8,
-            background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.3)",
-            color: "#f87171", fontSize: 12, fontFamily: "IBM Plex Mono, monospace",
-          }}>
-            {roadmapError}
+      <motion.div variants={fadeUp} style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+        {genError && (
+          <div style={{ padding: "10px 14px", borderRadius: "var(--r-sm)", background: "var(--error-bg)", border: "1px solid var(--error-brd)", fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--error)" }}>
+            {genError}
           </div>
         )}
-
-        {/* Generate Roadmap button */}
         {result.roadmapId ? (
           <button onClick={() => onViewRoadmap(result.roadmapId)} style={{
-            width: "100%", padding: "14px",
-            background: "var(--accent)", border: "none", borderRadius: 10,
-            color: "#fff", fontFamily: "IBM Plex Mono, monospace", fontSize: 14,
-            fontWeight: 600, cursor: "pointer", letterSpacing: "0.05em",
-          }}>
-            View Your Personalized Roadmap →
+            height: 48, background: "var(--a)", border: "none", borderRadius: "var(--r-md)",
+            color: "var(--a-text)", fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 800,
+            cursor: "pointer", letterSpacing: "0.01em", display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            transition: "filter 150ms",
+          }}
+          onMouseEnter={e => e.currentTarget.style.filter = "brightness(1.1)"}
+          onMouseLeave={e => e.currentTarget.style.filter = "none"}>
+            View Personalized Roadmap →
           </button>
         ) : (
-          <button
-            onClick={handleGenerateRoadmap}
-            disabled={generatingRoadmap}
-            style={{
-              width: "100%", padding: "14px",
-              background: generatingRoadmap ? "var(--border)" : "var(--accent)",
-              border: "none", borderRadius: 10,
-              color: generatingRoadmap ? "var(--muted)" : "#fff",
-              fontFamily: "IBM Plex Mono, monospace", fontSize: 14,
-              fontWeight: 600, cursor: generatingRoadmap ? "default" : "pointer",
-              letterSpacing: "0.05em",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-              transition: "all 0.2s",
-            }}>
-            {generatingRoadmap ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
-                  style={{ width: 14, height: 14, border: "2px solid var(--muted)", borderTopColor: "#fff", borderRadius: "50%" }}
-                />
-                Generating your personalized roadmap...
-              </>
-            ) : "Generate Personalized Roadmap from Test Results →"}
+          <button onClick={handleGenerate} disabled={genLoading} style={{
+            height: 48, background: genLoading ? "var(--srf)" : "var(--a)", border: `1px solid ${genLoading ? "var(--brd)" : "var(--a)"}`,
+            borderRadius: "var(--r-md)", color: genLoading ? "var(--t3)" : "var(--a-text)",
+            fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 800,
+            cursor: genLoading ? "default" : "pointer", letterSpacing: "0.01em",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+            transition: "all 200ms",
+          }}>
+            {genLoading
+              ? <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }} style={{ width: 14, height: 14, border: "2px solid var(--brd)", borderTopColor: "var(--a)", borderRadius: "50%" }}/> Generating roadmap…</>
+              : "Generate Personalized Roadmap from Results →"
+            }
           </button>
         )}
-
-        {/* Review toggle */}
         <button onClick={() => setShowReview(v => !v)} style={{
-          width: "100%", padding: "12px",
-          background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10,
-          color: "var(--muted)", fontFamily: "IBM Plex Mono, monospace", fontSize: 13,
-          cursor: "pointer", letterSpacing: "0.04em", transition: "all 0.15s",
-        }}>
+          height: 40, background: "var(--bg-1)", border: "1px solid var(--brd)", borderRadius: "var(--r-md)",
+          color: "var(--t3)", fontFamily: "var(--font-mono)", fontSize: 11, cursor: "pointer", letterSpacing: "0.06em",
+          transition: "all 150ms",
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--brd-hi)"; e.currentTarget.style.color = "var(--t1)"; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--brd)"; e.currentTarget.style.color = "var(--t3)"; }}>
           {showReview ? "▲ Hide Answer Review" : "▼ Review All Answers"}
         </button>
       </motion.div>
 
-      {/* Answer review */}
       <AnimatePresence>
         {showReview && (
-          <motion.div key="review"
-            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }} style={{ overflow: "hidden" }}>
+          <motion.div key="review" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} style={{ overflow: "hidden" }}>
             {mcqQ.length > 0 && (
-              <div style={{ marginBottom: 32 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
-                  <span style={{ fontSize: 18 }}>◈</span>
-                  <div>
-                    <div style={{ fontFamily: "IBM Plex Mono, monospace", fontWeight: 700, fontSize: 15 }}>Multiple Choice — Review</div>
-                    <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>
-                      {mcqQ.filter(q => answers[String(q.id)] === q.correctAnswer).length}/{mcqQ.length} correct
-                    </div>
-                  </div>
+              <div style={{ marginBottom: 24 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid var(--brd)" }}>
+                  <SectionLabel>Multiple Choice — Review</SectionLabel>
+                  <Mono size={10} color="var(--t4)" style={{ marginLeft: "auto" }}>
+                    {mcqQ.filter(q => answers[String(q.id)] === q.correctAnswer).length}/{mcqQ.length} correct
+                  </Mono>
                 </div>
                 <motion.div variants={stagger} initial="initial" animate="animate">
-                  {mcqQ.map((q, i) => (
-                    <McqReviewCard key={q.id} question={q} index={i + 1} userAnswer={answers[String(q.id)] ?? null} />
-                  ))}
+                  {mcqQ.map((q, i) => <McqReviewCard key={q.id} question={q} index={i+1} userAnswer={answers[String(q.id)] ?? null}/>)}
                 </motion.div>
               </div>
             )}
             {writeQ.length > 0 && (
-              <div style={{ marginBottom: 32 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
-                  <span style={{ fontSize: 18 }}>✍</span>
-                  <div>
-                    <div style={{ fontFamily: "IBM Plex Mono, monospace", fontWeight: 700, fontSize: 15 }}>Written Responses — Review</div>
-                    <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>Your answers with model key points</div>
-                  </div>
+              <div>
+                <div style={{ marginBottom: 14, paddingBottom: 10, borderBottom: "1px solid var(--brd)" }}>
+                  <SectionLabel>Written Responses — Review</SectionLabel>
                 </div>
                 <motion.div variants={stagger} initial="initial" animate="animate">
-                  {writeQ.map((q, i) => (
-                    <WritingReviewCard key={q.id} question={q} index={mcqQ.length + i + 1} userAnswer={answers[String(q.id)] ?? ""} />
-                  ))}
+                  {writeQ.map((q, i) => <WritingReviewCard key={q.id} question={q} index={mcqQ.length+i+1} userAnswer={answers[String(q.id)] ?? ""}/>)}
                 </motion.div>
               </div>
             )}
@@ -613,56 +893,44 @@ function ReportCard({ result, role, allQ, answers, onViewRoadmap, onGenerateRoad
   );
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-//  MAIN PAGE
-// ══════════════════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════════════════════
+   MAIN PAGE
+══════════════════════════════════════════════════════════════════════════════ */
 export default function MockTestPage() {
   const navigate = useNavigate();
 
-  const [phase, setPhase]       = useState("form");
-  const [error, setError]       = useState(null);
-  const [testData, setTestData] = useState(null);
-  const [answers, setAnswers]   = useState({});
-  const [result, setResult]     = useState(null);
+  const [phase,      setPhase]    = useState("form");
+  const [error,      setError]    = useState(null);
+  const [testData,   setTestData] = useState(null);
+  const [answers,    setAnswers]  = useState({});
+  const [result,     setResult]   = useState(null);
 
-  const [role, setRole]               = useState("");
-  const [experience, setExperience]   = useState("");
-  const [currentLevel, setLevel]      = useState("Intermediate");
-  const [goal, setGoal]               = useState("");
-  const [assessType, setAssessType]   = useState("mixed");
-  const [difficulty, setDifficulty]   = useState("medium");
-  const [focusTopics, setFocusTopics] = useState("");
+  const [role,        setRole]       = useState("");
+  const [experience,  setExperience] = useState("");
+  const [level,       setLevel]      = useState("Intermediate");
+  const [goal,        setGoal]       = useState("");
+  const [assessType,  setAssessType] = useState("mixed");
+  const [difficulty,  setDifficulty] = useState("medium");
+  const [focusTopics, setFocusTopics]= useState("");
 
   const allQ     = testData?.questions ?? [];
   const mcqQ     = allQ.filter(q => q.type === "mcq");
   const writeQ   = allQ.filter(q => q.type === "writing");
   const answered = Object.keys(answers).length;
   const totalQ   = allQ.length;
+  const formValid = role.trim() && experience;
 
   const setAnswer = (qId, val) => setAnswers(prev => ({ ...prev, [String(qId)]: val }));
 
-  // ── Start test ──────────────────────────────────────────────────────────────
   const handleStart = useCallback(async () => {
-    if (!role.trim() || !experience) return;
+    if (!formValid) return;
     setPhase("loading"); setError(null);
     try {
-      const data = await startMockTest({
-        role: role.trim(),
-        experienceLevel: experience,
-        currentLevel,
-        goal: goal.trim() || `Grow as a ${role}`,
-        assessmentType: assessType,
-        difficultyPreference: difficulty,
-        focusTopics: focusTopics.trim(),
-      });
+      const data = await startMockTest({ role: role.trim(), experienceLevel: experience, currentLevel: level, goal: goal.trim() || `Grow as a ${role}`, assessmentType: assessType, difficultyPreference: difficulty, focusTopics: focusTopics.trim() });
       setTestData(data); setAnswers({}); setPhase("quiz");
-    } catch (e) {
-      setError("Failed to generate test. Please try again.");
-      setPhase("form");
-    }
-  }, [role, experience, currentLevel, goal, assessType, difficulty, focusTopics]);
+    } catch { setError("Failed to generate test. Please try again."); setPhase("form"); }
+  }, [role, experience, level, goal, assessType, difficulty, focusTopics, formValid]);
 
-  // ── Submit test ─────────────────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
     setPhase("submitting"); setError(null);
     try {
@@ -670,353 +938,414 @@ export default function MockTestPage() {
         const q = allQ.find(x => String(x.id) === String(qId));
         return { id: parseInt(qId), type: q?.type ?? "mcq", answer: ans };
       });
-      const res = await submitMockTest({
-        testId:          testData.testId,
-        role,
-        experienceLevel: experience,
-        statedLevel:     currentLevel,
-        goal:            goal.trim() || `Grow as a ${role}`,
-        questions:       allQ,
-        answers:         answerList,
-      });
+      const res = await submitMockTest({ testId: testData.testId, role, experienceLevel: experience, statedLevel: level, goal: goal.trim() || `Grow as a ${role}`, questions: allQ, answers: answerList });
       setResult(res); setPhase("result");
-    } catch (e) {
-      setError("Submission failed. Please try again.");
-      setPhase("quiz");
-    }
-  }, [answers, allQ, testData, role, experience, currentLevel, goal]);
+    } catch { setError("Submission failed. Please try again."); setPhase("quiz"); }
+  }, [answers, allQ, testData, role, experience, level, goal]);
 
-  const handleTimerExpire = useCallback(() => {
-    if (phase === "quiz") handleSubmit();
-  }, [phase, handleSubmit]);
+  const handleTimerExpire = useCallback(() => { if (phase === "quiz") handleSubmit(); }, [phase, handleSubmit]);
 
-  // ── Generate roadmap from test results ──────────────────────────────────────
-  // Uses the main axios (port 8080) NOT mockAxios (port 8081)
   const handleGenerateRoadmap = useCallback(async () => {
     if (!result) return;
-
-    const levelMap    = { BEGINNER: "Beginner", INTERMEDIATE: "Intermediate", ADVANCED: "Advanced" };
-    const mappedLevel = levelMap[result.detectedLevel] ?? "Intermediate";
-
-    const payload = {
-      source:            "mocktest",          // tells roadmap agent this came from a test
-      role,
-      level:             mappedLevel,
-      yearsOfExperience: experience,
-      goal:              goal.trim() || `Grow as a ${role}`,
-      timePerDay:        "1 hour",
-      duration:          "3 months",
-      // Full test context so the roadmap agent can personalise deeply
-      testContext: {
-        detectedLevel:      result.detectedLevel,
-        statedLevel:        result.statedLevel ?? currentLevel,
-        overallScore:       result.overallScore,
-        mcqScore:           result.mcqScore,
-        writingScore:       result.writingScore ?? result.codingScore,
-        strengths:          result.strengths          ?? [],
-        weakAreas:          result.weakAreas          ?? [],
-        mustLearnNext:      result.mustLearnNext       ?? [],
-        recommendedTopics:  result.recommendedTopics   ?? [],
-        interviewReadiness: result.interviewReadiness,
-        confidenceLevel:    result.confidenceLevel,
-        finalVerdict:       result.finalVerdict,
-      },
-    };
-
-    // ✅ Use generateRoadmap from roadmapApi — this hits port 8080 with auth token
+    const levelMap = { BEGINNER: "Beginner", INTERMEDIATE: "Intermediate", ADVANCED: "Advanced" };
+    const payload = { source: "mocktest", role, level: levelMap[result.detectedLevel] ?? "Intermediate", yearsOfExperience: experience, goal: goal.trim() || `Grow as a ${role}`, timePerDay: "1 hour", duration: "3 months", testContext: { detectedLevel: result.detectedLevel, statedLevel: result.statedLevel ?? level, overallScore: result.overallScore, mcqScore: result.mcqScore, writingScore: result.writingScore ?? result.codingScore, strengths: result.strengths ?? [], weakAreas: result.weakAreas ?? [], mustLearnNext: result.mustLearnNext ?? [], recommendedTopics: result.recommendedTopics ?? [], interviewReadiness: result.interviewReadiness, confidenceLevel: result.confidenceLevel, finalVerdict: result.finalVerdict } };
     const data = await generateRoadmap(payload);
+    if (data?.id) navigate(`/roadmap/${data.id}`);
+    else throw new Error("No roadmap ID returned");
+  }, [result, role, experience, level, goal, navigate]);
 
-    if (data?.id) {
-      navigate(`/roadmap/${data.id}`);
-    } else {
-      throw new Error("No roadmap ID returned");
-    }
-  }, [result, role, experience, currentLevel, goal, navigate]);
-
-  const formValid = role.trim() && experience;
+  const diffMd = diffMeta(difficulty);
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
-        .mockx-root {
-          --surface: rgba(255,255,255,0.04);
-          --muted: var(--text-dim);
-          min-height: 100vh;
-          background:
-            radial-gradient(circle at top left, var(--accent-dim), transparent 24%),
-            linear-gradient(180deg, var(--bg) 0%, var(--bg-surface) 100%);
-          color: var(--text);
-          font-family: 'Manrope', sans-serif;
-          padding-top: calc(var(--navbar-height, 56px) + 16px);
-        }
-        .mockx-shell {
-          max-width: 880px;
-          margin: 0 auto;
-          padding: 40px 24px 120px;
-        }
-      `}</style>
-    <div className="mockx-root">
-      <div className="mockx-shell">
+    <div style={{ minHeight: "100vh", background: "var(--bg)", display: "flex" }}>
 
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} style={{ marginBottom: 36 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div>
-              <div style={{ fontSize: 11, letterSpacing: "0.15em", color: "var(--muted)", textTransform: "uppercase", marginBottom: 8 }}>
-                {phase === "form"         ? "Mock Assessment"
-                 : phase === "loading"    ? "Generating Test"
-                 : phase === "quiz"       ? `${role} · ${experience}`
-                 : phase === "submitting" ? "Evaluating"
-                 : "Assessment Report"}
-              </div>
-              <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0, lineHeight: 1.3 }}>
-                {phase === "form"         ? "Configure your assessment"
-                 : phase === "loading"    ? `Building your ${totalQ || 25}-question test...`
-                 : phase === "quiz"       ? "Answer every question."
-                 : phase === "submitting" ? "Scoring & generating report..."
-                 : "Your full assessment report"}
-              </h1>
-            </div>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              {phase === "quiz" && testData?.timeMinutes && (
-                <CountdownTimer minutes={testData.timeMinutes} onExpire={handleTimerExpire} />
+      {/* ── Left rail ── */}
+      <PhaseRail
+        phase={phase} role={role} experience={experience} difficulty={difficulty}
+        answered={answered} totalQ={totalQ} testData={testData}
+        allQ={allQ} mcqQ={mcqQ} answers={answers}
+      />
+
+      {/* ── Main content ── */}
+      <div style={{ flex: 1, overflowY: "auto", minWidth: 0 }}>
+
+        {/* ── Top bar — test-contextual ── */}
+        <div style={{
+          position: "sticky", top: 0, zIndex: 10,
+          background: "color-mix(in srgb, var(--bg) 92%, transparent)",
+          backdropFilter: "blur(12px)",
+          borderBottom: "1px solid var(--brd)",
+          padding: "0 clamp(20px, 4vw, 48px)",
+          height: 56, display: "flex", alignItems: "center", gap: 10,
+        }}>
+
+          {/* Context pills — only during/after test */}
+          {phase !== "form" && phase !== "loading" ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, flexWrap: "wrap" }}>
+              {/* Live indicator */}
+              {(phase === "quiz") && (
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 5,
+                  padding: "3px 9px", borderRadius: "var(--r-pill)",
+                  background: "rgba(74,222,128,0.1)", border: "1px solid rgba(74,222,128,0.3)",
+                }}>
+                  <motion.div
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+                    style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--success)", flexShrink: 0 }}
+                  />
+                  <Mono size={9} color="var(--success)" style={{ fontWeight: 700 }}>LIVE</Mono>
+                </div>
               )}
-              {phase !== "result" && (
-                <button onClick={() => navigate("/dashboard")} style={{
-                  background: "none", border: "1px solid var(--border)", borderRadius: 6,
-                  color: "var(--muted)", padding: "6px 14px", fontSize: 11,
-                  cursor: "pointer", fontFamily: "IBM Plex Mono, monospace",
-                }}>✕ Exit</button>
+              {/* Role pill */}
+              {role && (
+                <div style={{
+                  padding: "3px 10px", borderRadius: "var(--r-pill)",
+                  background: "var(--srf)", border: "1px solid var(--brd)",
+                }}>
+                  <Mono size={10} color="var(--t2)">{role}</Mono>
+                </div>
+              )}
+              {/* Experience pill */}
+              {experience && (
+                <div style={{
+                  padding: "3px 10px", borderRadius: "var(--r-pill)",
+                  background: "var(--srf)", border: "1px solid var(--brd)",
+                }}>
+                  <Mono size={10} color="var(--t2)">{experience}</Mono>
+                </div>
+              )}
+              {/* Difficulty pill */}
+              {difficulty && (
+                <div style={{
+                  padding: "3px 10px", borderRadius: "var(--r-pill)",
+                  background: diffMd.bg, border: `1px solid ${diffMd.brd}`,
+                }}>
+                  <Mono size={10} color={diffMd.fg} style={{ textTransform: "capitalize" }}>{difficulty}</Mono>
+                </div>
+              )}
+              {/* Phase label */}
+              {phase === "result" && (
+                <div style={{
+                  padding: "3px 10px", borderRadius: "var(--r-pill)",
+                  background: "var(--a-dim)", border: "1px solid var(--a-brd)",
+                }}>
+                  <Mono size={9} color="var(--a)">Assessment Complete</Mono>
+                </div>
               )}
             </div>
-          </div>
-          {phase === "quiz" && (
-            <div style={{ marginTop: 16 }}>
-              <ProgressBar current={answered} total={totalQ} />
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 5, fontSize: 11, color: "var(--muted)", fontFamily: "IBM Plex Mono, monospace" }}>
-                <span>{answered}/{totalQ} answered</span>
-                <span>{testData?.totalPoints ?? 100} total points</span>
-              </div>
+          ) : (
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <Mono size={9} color="var(--t4)" style={{ textTransform: "uppercase", letterSpacing: "0.2em" }}>
+                {phase === "form" ? "Setup" : "Generating"}
+              </Mono>
             </div>
           )}
-        </motion.div>
 
-        {/* Error */}
+          {/* Timer */}
+          {phase === "quiz" && testData?.timeMinutes && (
+            <CountdownTimer minutes={testData.timeMinutes} onExpire={handleTimerExpire} />
+          )}
+
+          {/* Quiz progress pill */}
+          {phase === "quiz" && totalQ > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 12px", background: "var(--bg-1)", border: "1px solid var(--brd)", borderRadius: "var(--r-pill)" }}>
+              <Mono size={10} color="var(--a)">{answered}/{totalQ}</Mono>
+              <div style={{ width: 60 }}><ProgressBar pct={(answered/totalQ)*100} /></div>
+            </div>
+          )}
+
+          {phase !== "result" && (
+            <button onClick={() => navigate("/dashboard")} style={{
+              height: 30, padding: "0 12px",
+              background: "var(--bg-1)", border: "1px solid var(--brd)",
+              borderRadius: "var(--r-sm)", color: "var(--t3)",
+              fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.1em",
+              cursor: "pointer", transition: "all 150ms",
+            }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "var(--error-brd)"; e.currentTarget.style.color = "var(--error)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "var(--brd)"; e.currentTarget.style.color = "var(--t3)"; }}>
+              ✕ EXIT
+            </button>
+          )}
+        </div>
+
+        {/* Error banner */}
         <AnimatePresence>
           {error && (
-            <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              style={{ padding: "10px 14px", borderRadius: 8, background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.3)", color: "#f87171", fontSize: 12, marginBottom: 20, fontFamily: "IBM Plex Mono, monospace" }}>
-              {error}
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+              style={{ padding: "10px clamp(20px,4vw,48px)", background: "var(--error-bg)", borderBottom: "1px solid var(--error-brd)" }}>
+              <Mono size={11} color="var(--error)">⚠ {error}</Mono>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <AnimatePresence mode="wait">
+        {/* Page body */}
+        <div style={{ padding: "clamp(24px,4vw,48px)", maxWidth: 900 }}>
+          <AnimatePresence mode="wait">
 
-          {/* FORM */}
-          {phase === "form" && (
-            <motion.div key="form" variants={stagger} initial="initial" animate="animate" exit="exit">
-              <motion.p variants={fadeUp} style={{ color: "var(--muted)", fontSize: 13, lineHeight: 1.7, marginBottom: 32, maxWidth: 560 }}>
-                Configure your assessment. Our AI engine will generate questions tailored to your role — then evaluate your answers and produce a full report with a personalized roadmap.
-              </motion.p>
+            {/* ── FORM ── */}
+            {phase === "form" && (
+              <motion.div key="form" variants={stagger} initial="initial" animate="animate" exit={{ opacity: 0, y: -8, transition: { duration: 0.16 } }}>
+                <motion.div variants={fadeUp} style={{ marginBottom: 32 }}>
+                  <h1 style={{ fontFamily: "var(--font-sans)", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", fontWeight: 900, letterSpacing: "-0.04em", color: "var(--t1)", lineHeight: 1.1, marginBottom: 8 }}>
+                    Configure Assessment
+                  </h1>
+                  <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, color: "var(--t3)", lineHeight: 1.7, maxWidth: 520, margin: 0 }}>
+                    Our AI generates questions tailored to your role, evaluates every answer, and produces a full diagnostic report with a personalized roadmap.
+                  </p>
+                </motion.div>
 
-              <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
-                <label style={{ display: "block", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "IBM Plex Mono, monospace" }}>Target Role *</label>
-                <input type="text" value={role} onChange={e => setRole(e.target.value)}
-                  placeholder="e.g. Java Backend Developer, Data Scientist, Product Manager..."
-                  style={{ width: "100%", boxSizing: "border-box", background: "var(--surface)", border: `1px solid ${role ? "var(--accent)" : "var(--border)"}`, borderRadius: 8, padding: "12px 15px", color: "var(--text)", fontSize: 14, fontFamily: "IBM Plex Mono, monospace", outline: "none", transition: "border-color 0.2s" }}
-                />
-              </motion.div>
-
-              <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
-                <label style={{ display: "block", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "IBM Plex Mono, monospace" }}>Your Goal (optional)</label>
-                <input type="text" value={goal} onChange={e => setGoal(e.target.value)}
-                  placeholder="e.g. Land a senior role, Pass FAANG interviews, Switch to ML..."
-                  style={{ width: "100%", boxSizing: "border-box", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 15px", color: "var(--text)", fontSize: 14, fontFamily: "IBM Plex Mono, monospace", outline: "none" }}
-                />
-              </motion.div>
-
-              <motion.div variants={fadeUp} style={{ marginBottom: 28 }}>
-                <label style={{ display: "block", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "IBM Plex Mono, monospace" }}>Focus Topics (optional)</label>
-                <input type="text" value={focusTopics} onChange={e => setFocusTopics(e.target.value)}
-                  placeholder="e.g. Spring Boot, REST APIs, Microservices, JPA..."
-                  style={{ width: "100%", boxSizing: "border-box", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "12px 15px", color: "var(--text)", fontSize: 14, fontFamily: "IBM Plex Mono, monospace", outline: "none" }}
-                />
-              </motion.div>
-
-              <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
-                <label style={{ display: "block", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "IBM Plex Mono, monospace" }}>Experience Level *</label>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 8 }}>
-                  {EXPERIENCE_OPTIONS.map(opt => (
-                    <motion.button key={opt.value} onClick={() => setExperience(opt.value)}
-                      whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                      style={{ padding: "12px 14px", borderRadius: 8, cursor: "pointer", background: experience === opt.value ? "var(--surface)" : "var(--bg)", border: `1px solid ${experience === opt.value ? "var(--accent)" : "var(--border)"}`, color: experience === opt.value ? "var(--accent)" : "var(--text)", fontFamily: "IBM Plex Mono, monospace", textAlign: "left", outline: "none", transition: "all 0.15s" }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{opt.label}</div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{opt.badge}</div>
-                    </motion.button>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
-                <label style={{ display: "block", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "IBM Plex Mono, monospace" }}>Self-Assessed Level</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {LEVEL_OPTIONS.map(l => (
-                    <motion.button key={l} onClick={() => setLevel(l)}
-                      whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                      style={{ flex: 1, padding: "10px", borderRadius: 8, cursor: "pointer", background: currentLevel === l ? "var(--surface)" : "var(--bg)", border: `1px solid ${currentLevel === l ? "var(--accent)" : "var(--border)"}`, color: currentLevel === l ? "var(--accent)" : "var(--text)", fontFamily: "IBM Plex Mono, monospace", fontSize: 13, outline: "none", transition: "all 0.15s" }}>{l}</motion.button>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div variants={fadeUp} style={{ marginBottom: 24 }}>
-                <label style={{ display: "block", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "IBM Plex Mono, monospace" }}>Assessment Type</label>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
-                  {TYPE_OPTIONS.map(t => (
-                    <motion.button key={t.value} onClick={() => setAssessType(t.value)}
-                      whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                      style={{ padding: "12px", borderRadius: 8, cursor: "pointer", background: assessType === t.value ? "var(--surface)" : "var(--bg)", border: `1px solid ${assessType === t.value ? "var(--accent)" : "var(--border)"}`, color: assessType === t.value ? "var(--accent)" : "var(--text)", fontFamily: "IBM Plex Mono, monospace", outline: "none", textAlign: "left", transition: "all 0.15s" }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 3 }}>{t.label}</div>
-                      <div style={{ fontSize: 11, color: "var(--muted)" }}>{t.desc}</div>
-                    </motion.button>
-                  ))}
-                </div>
-              </motion.div>
-
-              <motion.div variants={fadeUp} style={{ marginBottom: 32 }}>
-                <label style={{ display: "block", fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--muted)", marginBottom: 8, fontFamily: "IBM Plex Mono, monospace" }}>Difficulty Preference</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  {DIFFICULTY_OPTIONS.map(d => {
-                    const dc = diffColor(d);
-                    return (
-                      <motion.button key={d} onClick={() => setDifficulty(d)}
-                        whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                        style={{ flex: 1, padding: "10px", borderRadius: 8, cursor: "pointer", background: difficulty === d ? dc.bg : "var(--bg)", border: `1px solid ${difficulty === d ? dc.border : "var(--border)"}`, color: difficulty === d ? dc.text : "var(--text)", fontFamily: "IBM Plex Mono, monospace", fontSize: 13, textTransform: "capitalize", outline: "none", transition: "all 0.15s" }}>{d}</motion.button>
-                    );
-                  })}
-                </div>
-              </motion.div>
-
-              <motion.button variants={fadeUp} onClick={handleStart} disabled={!formValid}
-                whileHover={formValid ? { scale: 1.02 } : {}} whileTap={formValid ? { scale: 0.98 } : {}}
-                style={{ padding: "14px 36px", background: formValid ? "var(--accent)" : "var(--border)", border: "none", borderRadius: 8, color: formValid ? "#fff" : "var(--muted)", fontFamily: "IBM Plex Mono, monospace", fontSize: 14, fontWeight: 600, cursor: formValid ? "pointer" : "default", letterSpacing: "0.05em", transition: "all 0.2s" }}>
-                Generate Test →
-              </motion.button>
-            </motion.div>
-          )}
-
-          {/* LOADING */}
-          {phase === "loading" && (
-            <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ textAlign: "center", paddingTop: 80 }}>
-              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
-                style={{ width: 48, height: 48, border: "3px solid var(--border)", borderTopColor: "var(--accent)", borderRadius: "50%", margin: "0 auto 24px" }} />
-              <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 14, color: "var(--muted)", lineHeight: 1.7 }}>
-                AI is crafting questions for<br />
-                <strong style={{ color: "var(--text)" }}>{role}</strong> · <strong style={{ color: "var(--text)" }}>{experience}</strong> · <strong style={{ color: "var(--text)" }}>{difficulty}</strong>
-              </div>
-            </motion.div>
-          )}
-
-          {/* QUIZ */}
-          {phase === "quiz" && testData && (
-            <motion.div key="quiz" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {mcqQ.length > 0 && (
-                <div style={{ marginBottom: 40 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
-                    <span style={{ fontSize: 18 }}>◈</span>
-                    <div>
-                      <div style={{ fontFamily: "IBM Plex Mono, monospace", fontWeight: 700, fontSize: 15 }}>Multiple Choice</div>
-                      <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>Select the best answer</div>
-                    </div>
-                    <div style={{ marginLeft: "auto", fontFamily: "IBM Plex Mono, monospace", fontSize: 12, color: "var(--muted)" }}>
-                      {mcqQ.filter(q => answers[String(q.id)]).length}/{mcqQ.length} done
-                    </div>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 40px" }}>
+                  <div>
+                    <motion.div variants={fadeUp}>
+                      <FieldGroup label="Target Role *">
+                        <TextInput value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Java Backend Developer, Data Scientist…" highlight />
+                      </FieldGroup>
+                    </motion.div>
+                    <motion.div variants={fadeUp}>
+                      <FieldGroup label="Your Goal (optional)">
+                        <TextInput value={goal} onChange={e => setGoal(e.target.value)} placeholder="e.g. Land a senior role, Pass FAANG interviews…" />
+                      </FieldGroup>
+                    </motion.div>
+                    <motion.div variants={fadeUp}>
+                      <FieldGroup label="Focus Topics (optional)">
+                        <TextInput value={focusTopics} onChange={e => setFocusTopics(e.target.value)} placeholder="e.g. Spring Boot, REST APIs, Microservices…" />
+                      </FieldGroup>
+                    </motion.div>
+                    <motion.div variants={fadeUp}>
+                      <FieldGroup label="Self-Assessed Level">
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {LEVEL_OPTIONS.map(l => (
+                            <SegmentButton key={l} active={level === l} onClick={() => setLevel(l)} style={{ flex: 1, fontSize: 11 }}>
+                              {l}
+                            </SegmentButton>
+                          ))}
+                        </div>
+                      </FieldGroup>
+                    </motion.div>
                   </div>
-                  <motion.div variants={stagger} initial="initial" animate="animate">
-                    {mcqQ.map((q, i) => (
-                      <McqCard key={q.id} question={q} index={i + 1}
-                        selected={answers[String(q.id)] ?? null}
-                        onSelect={val => setAnswer(q.id, val)} />
-                    ))}
-                  </motion.div>
-                </div>
-              )}
-              {writeQ.length > 0 && (
-                <div style={{ marginBottom: 40 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
-                    <span style={{ fontSize: 18 }}>✍</span>
-                    <div>
-                      <div style={{ fontFamily: "IBM Plex Mono, monospace", fontWeight: 700, fontSize: 15 }}>Written Responses</div>
-                      <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 11, color: "var(--muted)" }}>Explain your thinking clearly</div>
-                    </div>
-                    <div style={{ marginLeft: "auto", fontFamily: "IBM Plex Mono, monospace", fontSize: 12, color: "var(--muted)" }}>
-                      {writeQ.filter(q => (answers[String(q.id)] ?? "").trim().length > 10).length}/{writeQ.length} done
-                    </div>
+
+                  <div>
+                    <motion.div variants={fadeUp}>
+                      <FieldGroup label="Experience Level *">
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                          {EXPERIENCE_OPTIONS.map(opt => (
+                            <button key={opt.value} onClick={() => setExperience(opt.value)}
+                              style={{
+                                padding: "10px 12px", borderRadius: "var(--r-sm)", cursor: "pointer", textAlign: "left",
+                                background: experience === opt.value ? "var(--a-dim)" : "var(--bg-2)",
+                                border: `1px solid ${experience === opt.value ? "var(--a-brd)" : "var(--brd)"}`,
+                                outline: "none", transition: "all 150ms",
+                              }}>
+                              <div style={{ fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600, color: experience === opt.value ? "var(--a)" : "var(--t2)", marginBottom: 2 }}>{opt.label}</div>
+                              <Mono size={9} color={experience === opt.value ? "var(--a)" : "var(--t4)"}>{opt.badge}</Mono>
+                            </button>
+                          ))}
+                        </div>
+                      </FieldGroup>
+                    </motion.div>
+
+                    <motion.div variants={fadeUp}>
+                      <FieldGroup label="Assessment Type">
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                          {TYPE_OPTIONS.map(t => (
+                            <button key={t.value} onClick={() => setAssessType(t.value)}
+                              style={{
+                                padding: "11px 14px", borderRadius: "var(--r-sm)", cursor: "pointer", textAlign: "left",
+                                background: assessType === t.value ? "var(--a-dim)" : "var(--bg-2)",
+                                border: `1px solid ${assessType === t.value ? "var(--a-brd)" : "var(--brd)"}`,
+                                display: "flex", alignItems: "center", justifyContent: "space-between",
+                                outline: "none", transition: "all 150ms",
+                              }}>
+                              <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 600, color: assessType === t.value ? "var(--a)" : "var(--t2)" }}>{t.label}</span>
+                              <Mono size={9} color={assessType === t.value ? "var(--a)" : "var(--t4)"}>{t.desc}</Mono>
+                            </button>
+                          ))}
+                        </div>
+                      </FieldGroup>
+                    </motion.div>
+
+                    <motion.div variants={fadeUp}>
+                      <FieldGroup label="Difficulty Preference">
+                        <div style={{ display: "flex", gap: 6 }}>
+                          {DIFFICULTY_OPTIONS.map(d => {
+                            const dm = diffMeta(d);
+                            return (
+                              <SegmentButton key={d} active={difficulty === d} onClick={() => setDifficulty(d)}
+                                accentColor={difficulty === d ? dm.fg : undefined}
+                                style={{ flex: 1, fontSize: 11, textTransform: "capitalize",
+                                  background: difficulty === d ? dm.bg : "var(--bg-2)",
+                                  border: `1px solid ${difficulty === d ? dm.brd : "var(--brd)"}`,
+                                  color: difficulty === d ? dm.fg : "var(--t3)",
+                                }}>
+                                {d}
+                              </SegmentButton>
+                            );
+                          })}
+                        </div>
+                      </FieldGroup>
+                    </motion.div>
                   </div>
-                  <motion.div variants={stagger} initial="initial" animate="animate">
-                    {writeQ.map((q, i) => (
-                      <WritingCard key={q.id} question={q} index={mcqQ.length + i + 1}
-                        value={answers[String(q.id)] ?? ""}
-                        onChange={val => setAnswer(q.id, val)} />
-                    ))}
-                  </motion.div>
                 </div>
-              )}
-              <div style={{ position: "sticky", bottom: 24, background: "var(--bg)", padding: "14px 0 4px", borderTop: "1px solid var(--border)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+
+                <motion.div variants={fadeUp} style={{ marginTop: 12, paddingTop: 22, borderTop: "1px solid var(--brd)", display: "flex", alignItems: "center", gap: 14 }}>
+                  <button onClick={handleStart} disabled={!formValid}
+                    style={{
+                      height: 46, padding: "0 28px",
+                      background: formValid ? "var(--a)" : "var(--srf)",
+                      border: `1px solid ${formValid ? "var(--a)" : "var(--brd)"}`,
+                      borderRadius: "var(--r-md)",
+                      color: formValid ? "var(--a-text)" : "var(--t4)",
+                      fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 800,
+                      cursor: formValid ? "pointer" : "not-allowed",
+                      transition: "all 200ms",
+                      display: "flex", alignItems: "center", gap: 8,
+                    }}>
+                    Generate Test →
+                  </button>
+                  {!formValid && (
+                    <Mono size={10} color="var(--t4)">
+                      {!role.trim() && !experience ? "Enter role & experience" : !role.trim() ? "Enter target role" : "Select experience level"}
+                    </Mono>
+                  )}
+                </motion.div>
+              </motion.div>
+            )}
+
+            {/* ── LOADING ── */}
+            {phase === "loading" && (
+              <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+                <div style={{ textAlign: "center" }}>
+                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
+                    style={{ width: 44, height: 44, border: "2px solid var(--brd)", borderTopColor: "var(--a)", borderRadius: "50%", margin: "0 auto 24px" }} />
+                  <div style={{ fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 700, color: "var(--t1)", marginBottom: 6 }}>
+                    Building your test
+                  </div>
+                  <Mono size={11} color="var(--t3)">
+                    {role} · {experience} · {difficulty}
+                  </Mono>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── QUIZ ── */}
+            {phase === "quiz" && testData && (
+              <motion.div key="quiz" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                {mcqQ.length > 0 && (
+                  <div style={{ marginBottom: 36 }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--brd)" }}>
+                      <div>
+                        <SectionLabel>Multiple Choice</SectionLabel>
+                        <Mono size={10} color="var(--t4)">Select the best answer for each question</Mono>
+                      </div>
+                      <Mono size={11} color="var(--a)" style={{ marginLeft: "auto" }}>
+                        {mcqQ.filter(q => answers[String(q.id)]).length}/{mcqQ.length} done
+                      </Mono>
+                    </div>
+                    <motion.div variants={stagger} initial="initial" animate="animate">
+                      {mcqQ.map((q, i) => (
+                        <McqCard key={q.id} question={q} index={i+1}
+                          selected={answers[String(q.id)] ?? null}
+                          onSelect={val => setAnswer(q.id, val)} />
+                      ))}
+                    </motion.div>
+                  </div>
+                )}
+
+                {writeQ.length > 0 && (
+                  <div style={{ marginBottom: 36 }}>
+                    <div style={{ display: "flex", alignItems: "center", marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--brd)" }}>
+                      <div>
+                        <SectionLabel>Written Responses</SectionLabel>
+                        <Mono size={10} color="var(--t4)">Explain your thinking clearly — aim for 80+ words</Mono>
+                      </div>
+                      <Mono size={11} color="var(--a)" style={{ marginLeft: "auto" }}>
+                        {writeQ.filter(q => (answers[String(q.id)] ?? "").trim().length > 10).length}/{writeQ.length} done
+                      </Mono>
+                    </div>
+                    <motion.div variants={stagger} initial="initial" animate="animate">
+                      {writeQ.map((q, i) => (
+                        <WritingCard key={q.id} question={q} index={mcqQ.length+i+1}
+                          value={answers[String(q.id)] ?? ""}
+                          onChange={val => setAnswer(q.id, val)} />
+                      ))}
+                    </motion.div>
+                  </div>
+                )}
+
+                {/* Sticky submit bar */}
+                <div style={{
+                  position: "sticky", bottom: 0, zIndex: 10,
+                  background: "color-mix(in srgb, var(--bg) 94%, transparent)",
+                  backdropFilter: "blur(12px)",
+                  borderTop: "1px solid var(--brd)",
+                  padding: "12px 0",
+                  display: "flex", alignItems: "center", gap: 16,
+                }}>
                   <div style={{ flex: 1 }}>
-                    <ProgressBar current={answered} total={totalQ} />
-                    <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, fontFamily: "IBM Plex Mono, monospace" }}>
-                      {answered}/{totalQ} answered {answered < totalQ ? `· ${totalQ - answered} remaining` : "· ✓ all done!"}
-                    </div>
+                    <ProgressBar pct={(answered/totalQ)*100} />
+                    <Mono size={10} color="var(--t4)" style={{ marginTop: 5 }}>
+                      {answered}/{totalQ} answered{answered < totalQ ? ` · ${totalQ - answered} remaining` : " · ✓ All answered"}
+                    </Mono>
                   </div>
-                  <motion.button onClick={handleSubmit} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    style={{ padding: "12px 28px", borderRadius: 8, background: answered === totalQ ? "var(--accent)" : "var(--surface)", border: `1px solid ${answered === totalQ ? "var(--accent)" : "var(--border)"}`, color: answered === totalQ ? "#fff" : "var(--muted)", fontFamily: "IBM Plex Mono, monospace", fontSize: 13, fontWeight: 600, cursor: "pointer", flexShrink: 0, transition: "all 0.2s" }}>
+                  <button onClick={handleSubmit}
+                    style={{
+                      height: 40, padding: "0 24px",
+                      background: answered === totalQ ? "var(--a)" : "var(--bg-1)",
+                      border: `1px solid ${answered === totalQ ? "var(--a)" : "var(--brd)"}`,
+                      borderRadius: "var(--r-md)",
+                      color: answered === totalQ ? "var(--a-text)" : "var(--t2)",
+                      fontFamily: "var(--font-sans)", fontSize: 12, fontWeight: 800,
+                      cursor: "pointer", transition: "all 200ms", flexShrink: 0,
+                    }}>
                     {answered < totalQ ? `Submit (${totalQ - answered} skipped)` : "Submit Test →"}
-                  </motion.button>
+                  </button>
                 </div>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
 
-          {/* SUBMITTING */}
-          {phase === "submitting" && (
-            <motion.div key="submitting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              style={{ textAlign: "center", paddingTop: 80 }}>
-              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
-                style={{ width: 48, height: 48, border: "3px solid var(--border)", borderTopColor: "#a78bfa", borderRadius: "50%", margin: "0 auto 24px" }} />
-              <div style={{ fontFamily: "IBM Plex Mono, monospace", fontSize: 14, color: "var(--muted)", lineHeight: 1.7 }}>
-                AI is evaluating your answers...<br />generating your Phase 4 report
-              </div>
-            </motion.div>
-          )}
+            {/* ── SUBMITTING ── */}
+            {phase === "submitting" && (
+              <motion.div key="submitting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "60vh" }}>
+                <div style={{ textAlign: "center" }}>
+                  <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1.4, ease: "linear" }}
+                    style={{ width: 44, height: 44, border: "2px solid var(--brd)", borderTopColor: "var(--a)", borderRadius: "50%", margin: "0 auto 24px" }} />
+                  <div style={{ fontFamily: "var(--font-sans)", fontSize: 15, fontWeight: 700, color: "var(--t1)", marginBottom: 6 }}>
+                    Scoring your answers
+                  </div>
+                  <Mono size={11} color="var(--t3)">Generating your full diagnostic report…</Mono>
+                </div>
+              </motion.div>
+            )}
 
-          {/* RESULT */}
-          {phase === "result" && result && (
-            <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <ReportCard
-                result={result}
-                role={role}
-                allQ={allQ}
-                answers={answers}
-                onViewRoadmap={id => navigate(`/roadmap/${id}`)}
-                onGenerateRoadmap={handleGenerateRoadmap}
-              />
-              <div style={{ textAlign: "center", marginTop: 20 }}>
-                <button
-                  onClick={() => { setPhase("form"); setResult(null); setTestData(null); setAnswers({}); }}
-                  style={{ background: "none", border: "none", color: "var(--muted)", fontFamily: "IBM Plex Mono, monospace", fontSize: 12, cursor: "pointer", textDecoration: "underline" }}>
-                  Take another test
-                </button>
-              </div>
-            </motion.div>
-          )}
+            {/* ── RESULT ── */}
+            {phase === "result" && result && (
+              <motion.div key="result" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <div style={{ marginBottom: 28 }}>
+                  <h1 style={{ fontFamily: "var(--font-sans)", fontSize: "clamp(1.5rem, 2.8vw, 2.2rem)", fontWeight: 900, letterSpacing: "-0.04em", color: "var(--t1)", lineHeight: 1.1, marginBottom: 6 }}>
+                    Assessment Complete
+                  </h1>
+                  <Mono size={11} color="var(--t3)">{role} · {experience}</Mono>
+                </div>
+                <ReportCard result={result} role={role} allQ={allQ} answers={answers}
+                  onViewRoadmap={id => navigate(`/roadmap/${id}`)}
+                  onGenerateRoadmap={handleGenerateRoadmap} />
+                <div style={{ marginTop: 24, paddingTop: 16, borderTop: "1px solid var(--brd)" }}>
+                  <button
+                    onClick={() => { setPhase("form"); setResult(null); setTestData(null); setAnswers({}); }}
+                    style={{ background: "none", border: "none", color: "var(--t4)", fontFamily: "var(--font-mono)", fontSize: 11, cursor: "pointer", letterSpacing: "0.1em", textDecoration: "underline", textUnderlineOffset: 3 }}>
+                    ← Take another test
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
-        </AnimatePresence>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
-    </>
   );
 }
