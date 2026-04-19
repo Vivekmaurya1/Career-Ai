@@ -11,13 +11,13 @@ import { KeepAlive } from "./hooks/useKeepAlive";
 import { useAuth } from "./context/AuthContext";
 
 const Landing = lazy(() => import("./pages/landing"));
-const Generate = lazy(() => import("./pages/Generate"));
-const Login = lazy(() => import("./pages/Login"));
-const Register = lazy(() => import("./pages/Register"));
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const RoadmapPage = lazy(() => import("./pages/RoadmapPage"));
-const Settings = lazy(() => import("./pages/Settings"));
-const MockTestPage = lazy(() => import("./pages/MockTestPage"));
+const Generate = lazy(() => import("./pages/generate"));
+const Login = lazy(() => import("./pages/login"));
+const Register = lazy(() => import("./pages/register"));
+const Dashboard = lazy(() => import("./pages/dashboard"));
+const RoadmapPage = lazy(() => import("./pages/roadmapPage"));
+const Settings = lazy(() => import("./pages/settings"));
+const MockTestPage = lazy(() => import("./pages/mockTestPage"));
 
 /* ── Page transition wrapper ─────────────────────────────────────────────── */
 const pageVariants = {
