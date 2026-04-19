@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 import { useEffect, useRef } from "react";
 import styles from "./HowItWorks.module.css";
 
@@ -38,7 +39,7 @@ const TERMINAL_LINES = [
   { type: "result", content: <>Roadmap ready in <span style={{ color: "var(--a)" }}>28s</span></> },
 ];
 
-export default function HowItWorks() {
+export default function Howitworks() {
   const sectionRef = useRef(null);
 
   useEffect(() => {
