@@ -1,9 +1,9 @@
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
 import Features from "../components/feature";
-import HowItWorks from "../components/HowItWorks";
+import HowItWorks from "../components/howItWorks";
 import { CTA } from "../components/CTA";
-import { Footer } from "../components/Footer";
+import { Footer } from "../components/footer";
 import ServerWakeup from "../components/ServerWakeup";
 
 export default function Landing() {
