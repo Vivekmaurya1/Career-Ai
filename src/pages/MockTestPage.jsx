@@ -381,17 +381,15 @@ function McqReviewCard({ question, index, userAnswer }) {
         <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, lineHeight: 1.65, color: "var(--t1)", margin: "0 0 10px" }}>{question.question}</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
           {question.options?.map((opt, i) => {
-            const isC = opt === correct;
             const isU = opt === userAnswer;
-            const bg    = isC ? "var(--success-bg)"  : (isU && !isCorrect) ? "var(--error-bg)"  : "var(--bg-2)";
-            const brd   = isC ? "var(--success-brd)" : (isU && !isCorrect) ? "var(--error-brd)" : "var(--brd)";
-            const color = isC ? "var(--success)"     : (isU && !isCorrect) ? "var(--error)"     : "var(--t3)";
+            const bg    = isU ? (isCorrect ? "var(--success-bg)" : "var(--error-bg)") : "var(--bg-2)";
+            const brd   = isU ? (isCorrect ? "var(--success-brd)" : "var(--error-brd)") : "var(--brd)";
+            const color = isU ? (isCorrect ? "var(--success)" : "var(--error)") : "var(--t3)";
             return (
               <div key={opt} style={{ padding: "8px 12px", borderRadius: "var(--r-sm)", background: bg, border: `1px solid ${brd}`, display: "flex", alignItems: "center", gap: 10 }}>
                 <Mono size={9} color={color} style={{ fontWeight: 700, width: 14 }}>{letters[i]}</Mono>
                 <span style={{ fontFamily: "var(--font-sans)", fontSize: 12, color, flex: 1 }}>{opt}</span>
-                {isC && <Mono size={8} color="var(--success)" style={{ textTransform: "uppercase", letterSpacing: "0.12em" }}>Correct</Mono>}
-                {isU && !isCorrect && <Mono size={8} color="var(--error)" style={{ textTransform: "uppercase", letterSpacing: "0.12em" }}>Your pick</Mono>}
+                {isU && <Mono size={8} color={isCorrect ? "var(--success)" : "var(--error)"} style={{ textTransform: "uppercase", letterSpacing: "0.12em" }}>Your pick</Mono>}
               </div>
             );
           })}
@@ -462,9 +460,6 @@ function PhaseRail({ phase, role, experience, difficulty, answered, totalQ, test
   }, {});
   const topics = Object.entries(topicMap).sort((a, b) => b[1] - a[1]);
   const maxTopicCount = topics[0]?.[1] ?? 1;
-
-  /* Correct count for MCQ */
-  const correctCount = (mcqQ ?? []).filter(q => (answers ?? {})[String(q.id)] === q.correctAnswer).length;
 
   const scrollToQ = (qId) => {
     document.getElementById(`q-${qId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -609,10 +604,9 @@ function PhaseRail({ phase, role, experience, difficulty, answered, totalQ, test
             <SectionLabel>Session Stats</SectionLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
               {[
-                { val: answered,           label: "Answered",  color: "var(--a)"       },
-                { val: totalQ - answered,  label: "Remaining", color: "var(--t3)"      },
-                { val: correctCount,       label: "Correct",   color: "var(--success)" },
-                { val: totalQ,             label: "Total Qs",  color: "var(--t2)"      },
+                { val: answered,          label: "Answered",  color: "var(--a)"  },
+                { val: totalQ - answered, label: "Remaining", color: "var(--t3)" },
+                { val: totalQ,            label: "Total Qs",  color: "var(--t2)" },
               ].map(s => (
                 <div key={s.label} style={{
                   background: "var(--srf)", border: "1px solid var(--brd)",
