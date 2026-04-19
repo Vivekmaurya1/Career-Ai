@@ -10,7 +10,7 @@ import Navbar from "./components/Navbar";
 import { KeepAlive } from "./hooks/useKeepAlive";
 import { useAuth } from "./context/AuthContext";
 
-const Landing = lazy(() => import("./pages/Landing"));
+const Landing = lazy(() => import("./pages/landing"));
 const Generate = lazy(() => import("./pages/Generate"));
 const Login = lazy(() => import("./pages/Login"));
 const Register = lazy(() => import("./pages/Register"));
