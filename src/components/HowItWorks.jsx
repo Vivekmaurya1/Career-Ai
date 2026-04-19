@@ -39,7 +39,7 @@ const TERMINAL_LINES = [
   { type: "result", content: <>Roadmap ready in <span style={{ color: "var(--a)" }}>28s</span></> },
 ];
 
-export default function Howitworks() {
+export default function HowItWorks() {
   const sectionRef = useRef(null);
 
   useEffect(() => {
